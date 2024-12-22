@@ -1,0 +1,7 @@
+
+/example/.build
+*.exe
+*.pdb
+*.exp
+*.dll
+example/output/layout-new.lib
