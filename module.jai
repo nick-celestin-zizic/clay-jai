@@ -9,7 +9,7 @@
 // The code below is what I used to compile clay into a static library and generate the initial bindings.
 // You would need to download clay.h from https://github.com/nicbarker/clay
 #if 0 {
-    build clay static library
+    // build clay static library
     ok = build_cpp_static_lib("clay", "modules/clay/clay.h",
         debug = true,
         target = ifx OS == .WINDOWS then .NONE else OS, // windows target defaults to msvc and is very annoying bleh
@@ -18,7 +18,7 @@
     assert(ok);
     log("Compiled clay static library!");
     
-    generate bindings for clay (NOTE: I edited what was generated so be careful!)
+    // generate bindings for clay (NOTE: I edited what was generated so be careful!)
     {   using options: Generate_Bindings_Options;
         array_add(*strip_prefixes, "Clay_");
         array_add(*source_files, "clay.c");
