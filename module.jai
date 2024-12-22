@@ -6,11 +6,31 @@
 
 #module_parameters (link_implementation := true);
 
+// The code below is what I used to compile clay into a static library and generate the initial bindings.
+// You would need to download clay.h from https://github.com/nicbarker/clay
+#if 0 {
+    build clay static library
+    ok = build_cpp_static_lib("clay", "modules/clay/clay.h",
+        debug = true,
+        target = ifx OS == .WINDOWS then .NONE else OS, // windows target defaults to msvc and is very annoying bleh
+        extra = .["-DCLAY_IMPLEMENTATION", "-w"],
+    );
+    assert(ok);
+    log("Compiled clay static library!");
+    
+    generate bindings for clay (NOTE: I edited what was generated so be careful!)
+    {   using options: Generate_Bindings_Options;
+        array_add(*strip_prefixes, "Clay_");
+        array_add(*source_files, "clay.c");
+        array_add(*libpaths, ".");
+        array_add(*libnames, "clay.lib");
+        ok = generate_bindings(options, "module.jai");
+        assert(ok);
+    }
+}
+
 // macro api
 
-// this tales an array of code instead of ElementConfig so that
-// expressions like Hovered() are evaluated after the new element is opened.
-// A lesser language would force the user to do something like PointerOver(GetElementId(id)) LOL
 Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig) #expand {
     OpenElement();
     AttachId(id);
