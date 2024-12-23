@@ -118,9 +118,9 @@ create_layout :: (using state: State) -> Clay.RenderCommandArray {
                 // RendererPageMobile();
             } else {
                 landing_page_desktop(state);
+                feature_blocks_desktop(state);
+                declarative_syntax_page_desktop(state);
                 high_performance_page_desktop(state);
-                // FeatureBlocksDesktop();
-                // DeclarativeSyntaxPageDesktop();
                 // RendererPageDesktop();
                 // DebuggerPageDesktop();
             }
@@ -204,8 +204,97 @@ landing_page_desktop :: (using state: State) {
                 landing_page_blob(id, COLOR_BLOB_BORDER_2, "Single .h file for C/C++", image_check2); id += 1;
                 landing_page_blob(id, COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", image_check1); id += 1;
                 
-                landing_page_blob(id, COLOR_BLOB_BORDER_1, "Very nice Jai bindings", image_check2); id += 1;
-                landing_page_blob(id, COLOR_BLOB_BORDER_1, "Live Editing!!! :)", image_check2); id += 1;
+                // landing_page_blob(id, COLOR_BLOB_BORDER_1, "Very nice Jai bindings", image_check1); id += 1;
+                // landing_page_blob(id, COLOR_BLOB_BORDER_1, "Live Editing!!! :)", image_check1); id += 1;
+            }
+        }
+    }
+}
+
+feature_blocks_desktop :: (using state: State) {
+    using Clay;
+    { Element(ID("FeatureBlocksOuter"),
+        Layout(.{ sizing = .{ width = SizingGrow() } })
+    );
+        { Element(ID("FeatureBlocksInner"),
+            Layout(.{ sizing = .{ width = SizingGrow() }, childAlignment = .{ y = .CENTER } }),
+            Border(.{ betweenChildren = .{ width = 2, color = COLOR_RED } })
+        );
+        
+            text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_RED });
+            layout_config := LayoutConfig.{
+                layoutDirection = .TOP_TO_BOTTOM,
+                sizing = .{ width = SizingPercent(0.5) },
+                childAlignment = .{0, .CENTER},
+                padding = .{50, 32},
+                childGap = 8
+            };
+            
+            { Element(ID("HFileBoxOuter"), Layout(layout_config));
+                { Element(ID("HFileIncludeOuter"),
+                    Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
+                    Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
+                );
+                    config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_LIGHT });
+                    Text("#define CLAY_IMPLEMENTATION", config);
+                    Text("#include clay.h", config);
+                }
+                Text("~2000 lines of C99.", text_config);
+                Text("Zero dependencies, including no C standard library.", text_config);
+            }
+            { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
+                Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY_24, fontSize = 24, textColor = COLOR_ORANGE }));
+                Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
+                Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
+            }
+        }
+    }
+}
+
+declarative_syntax_page_desktop :: (using state: State) {
+    using Clay;
+    { Element(ID("SyntaxPageDesktop"),
+        Layout(.{
+            sizing = .{ SizingGrow(), SizingFit(.{ min = window_height - 50 }) },
+            childAlignment = .{0, .CENTER},
+            padding = .{x = 50}
+        })
+    );
+        { Element(ID("SyntaxPage"),
+            Layout(.{
+                sizing = .{ SizingGrow(), SizingGrow() },
+                childAlignment = .{ 0, .CENTER },
+                padding = .{ 32, 32 },
+                childGap = 32 }
+            ),
+            Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
+        );
+            { Element(ID("SyntaxPageLeftText"),
+                Layout(.{
+                    sizing = .{ width = SizingPercent(0.5) },
+                    layoutDirection = .TOP_TO_BOTTOM,
+                    childGap = 8
+                })
+            );
+                Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE_56, textColor = COLOR_RED }));
+                { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } })); }
+                
+                config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_RED });
+                Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
+                Text("Mix elements with standard C code like loops, conditionals and functions.", config);
+                Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
+            }
+            
+            { Element(ID("SyntaxPageRightImage"),
+                Layout(
+                    .{ sizing = .{ width = SizingPercent(0.50) },
+                    childAlignment = .{x = .CENTER}
+                }),
+            );
+                { Element(ID("SyntaxPageRightImageInner"),
+                    Layout(.{ sizing = .{ width = SizingGrow(.{ max = 568 }) } }),
+                    Image(.{ sourceDimensions = .{1136, 1194}, imageData = image_syntax })
+                ); }
             }
         }
     }
