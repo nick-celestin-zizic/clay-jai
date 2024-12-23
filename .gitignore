@@ -1,8 +1,10 @@
 
 /example/.build
 *.exe
-*.pdb
 *.exp
-*.dll
 example/output/layout-new.lib
 example/output/layout.lib
+example/output/jai-test.pdb
+example/output/raylib.dll
+example/output/layout-new.pdb
+example/output/layout-new.dll
