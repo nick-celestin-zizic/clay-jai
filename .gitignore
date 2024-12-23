@@ -5,3 +5,4 @@
 *.exp
 *.dll
 example/output/layout-new.lib
+example/output/layout.lib

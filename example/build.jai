@@ -52,7 +52,9 @@ build_runner :: () -> Workspace {
     
     watcher: File_Watcher(void);
     ok = init(*watcher,
-        (watcher: *File_Watcher(void), change: *File_Change, user_data: *void) {
+        (watcher: *File_Watcher(void), using change: *File_Change, user_data: *void) {
+            clear :: "\e[1;1H\e[2J";
+            log("%0% was modified. Reloading...", clear, full_path);
             compile_workspaces(build_layout_library());
         },
         null, events_to_watch = .ALL_EVENTS, verbose = true
