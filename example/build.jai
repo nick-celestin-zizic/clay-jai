@@ -43,13 +43,17 @@ build_runner :: () -> Workspace {
     set_build_options_dc(.{do_output=false});
     ok := true; // it's all gonna be ok :)
     
-    make_directory_if_it_does_not_exist("output");
-    layout_workspace := build_layout_library();
-    runner_workspace := build_runner();
-    ok = compile_workspaces(layout_workspace, runner_workspace);
+    ok = make_directory_if_it_does_not_exist("output");
     assert(ok);
     
-    copy_file("modules/raylib-jai/windows/raylib.dll", "output/raylib.dll");
+    ok = compile_workspaces(
+        build_layout_library(),
+        build_runner(),
+    );
+    assert(ok);
+    
+    ok = copy_file("modules/raylib-jai/windows/raylib.dll", "output/raylib.dll");
+    assert(ok);
     
     watcher: File_Watcher(void);
     ok = init(*watcher,
