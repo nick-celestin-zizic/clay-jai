@@ -3,7 +3,17 @@
 
 load_library :: (old_library: *void, layout_get_clay_state: layout_get_clay_state_proc_type) -> *void, layout_update_proc_type, layout_get_clay_state_proc_type {
     using File_Utilities; using File;
-    if !file_exists("layout-new.dll") return null, null, null;
+    if !file_exists("layout-new.dll") {
+        if old_library return null, null, null else {
+            // its not there! look for backup
+            if file_exists("layout.dll") {
+                atomic_file_replace_or_just_rename_if_destination_file_does_not_exist("layout.dll", "layout-new.dll");
+            } else {
+                log_error("could not find any layout dll!");
+                return null, null, null;
+            }
+        }
+    }
     
     layout_library := Windows.LoadLibraryA("layout-new.dll");
     if !layout_library {

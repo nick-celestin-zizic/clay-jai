@@ -43,6 +43,7 @@ build_runner :: () -> Workspace {
     set_build_options_dc(.{do_output=false});
     ok := true; // it's all gonna be ok :)
     
+    make_directory_if_it_does_not_exist("output");
     layout_workspace := build_layout_library();
     runner_workspace := build_runner();
     ok = compile_workspaces(layout_workspace, runner_workspace);
@@ -80,6 +81,7 @@ build_runner :: () -> Workspace {
 #import "String";
 #import "File_Utilities";
 #import "File_Watcher";
+#import "File";
 
 // This is a little snippet i like to use when writting smallish metaprograms.
 // It just does all of the boilerplate for initializing plugins and stuff
