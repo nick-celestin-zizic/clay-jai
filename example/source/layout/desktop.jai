@@ -23,7 +23,7 @@ landing_page_desktop :: () {
                     childGap = 8
                 })
             );
-                config := StoreTextElementConfig(.{ fontSize = 56, fontId = FONT_TITLE_56, textColor = COLOR_RED });
+                config := StoreTextElementConfig(.{ fontSize = 56, fontId = FONT_TITLE, textColor = COLOR_RED });
                 Text("Clay is a flex-box style UI auto layout library in C, with declarative syntax and microsecond performance.", config);
                 
                 { Element(ID("LandingPageSpacer"),
@@ -31,7 +31,7 @@ landing_page_desktop :: () {
                         sizing = .{ width = SizingGrow(), height = SizingFixed(32) }
                     })
                 );
-                    config := StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_TITLE_36, textColor = COLOR_ORANGE });
+                    config := StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_TITLE, textColor = COLOR_ORANGE });
                     Text("Clay is laying out this webpage right now!", config);
                 }
             }
@@ -65,7 +65,7 @@ landing_page_desktop :: () {
                     
                     Text(text, StoreTextElementConfig(.{
                         fontSize  = 24,
-                        fontId    = FONT_BODY_24,
+                        fontId    = FONT_BODY,
                         textColor = color 
                     }));
                     
@@ -95,7 +95,7 @@ feature_blocks_desktop :: () {
             Border(.{ betweenChildren = .{ width = 2, color = COLOR_RED } })
         );
         
-            text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_RED });
+            text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY, textColor = COLOR_RED });
             layout_config := LayoutConfig.{
                 layoutDirection = .TOP_TO_BOTTOM,
                 sizing = .{ width = SizingPercent(0.5) },
@@ -109,7 +109,7 @@ feature_blocks_desktop :: () {
                     Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
                     Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
                 );
-                    config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_LIGHT });
+                    config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY, textColor = COLOR_LIGHT });
                     Text("#define CLAY_IMPLEMENTATION", config);
                     Text("#include clay.h", config);
                 }
@@ -117,7 +117,7 @@ feature_blocks_desktop :: () {
                 Text("Zero dependencies, including no C standard library.", text_config);
             }
             { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
-                Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY_24, fontSize = 24, textColor = COLOR_ORANGE }));
+                Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_ORANGE }));
                 Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
                 Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
             }
@@ -150,10 +150,10 @@ declarative_syntax_page_desktop :: () {
                     childGap = 8
                 })
             );
-                Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE_56, textColor = COLOR_RED }));
+                Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE, textColor = COLOR_RED }));
                 { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } })); }
                 
-                config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_RED });
+                config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_RED });
                 Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
                 Text("Mix elements with standard C code like loops, conditionals and functions.", config);
                 Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
@@ -175,7 +175,7 @@ declarative_syntax_page_desktop :: () {
 }
 
 LOREM_IPSUM_TEXT   :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
-LOREM_IPSUM_CONFIG :: Clay.TextElementConfig.{ fontSize = 14, fontId = FONT_TITLE_56, textColor = COLOR_LIGHT };
+LOREM_IPSUM_CONFIG :: Clay.TextElementConfig.{ fontSize = 24, fontId = FONT_TITLE, textColor = COLOR_LIGHT };
 
 high_performance_page_desktop :: () {
     using Clay;
@@ -198,13 +198,13 @@ high_performance_page_desktop :: () {
     );
         Text("High Performance", StoreTextElementConfig(.{
             fontSize = 52,
-            fontId = FONT_TITLE_56,
+            fontId = FONT_TITLE,
             textColor = COLOR_LIGHT
         }));
         
         { Element(ID("PerformanceSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) }})); }
         
-        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_LIGHT });
+        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_LIGHT });
         Text("Fast enough to recompute your entire UI every frame.", config);
         Text("Small memory footprint (3.5mb default) with static allocation & reuse. No malloc / free.", config);
         Text("Simplify animations and reactive UI design by avoiding the standard performance hacks.", config);
@@ -286,7 +286,7 @@ renderer_page_desktop :: () {
             );
                 Text("Renderer & Platform Agnostic", StoreTextElementConfig(.{
                     fontSize  = 52,
-                    fontId    = FONT_TITLE_56,
+                    fontId    = FONT_TITLE,
                     textColor = COLOR_RED
                 }));
                 
@@ -294,7 +294,7 @@ renderer_page_desktop :: () {
                 
                 config := StoreTextElementConfig(.{
                     fontSize  = 28,
-                    fontId    = FONT_BODY_36,
+                    fontId    = FONT_BODY,
                     textColor = COLOR_RED
                 });
                 
@@ -309,7 +309,7 @@ renderer_page_desktop :: () {
                     layoutDirection = .TOP_TO_BOTTOM, childGap = 16
                 })
             );
-                Text("Try changing renderer!", StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_BODY_36, textColor = COLOR_ORANGE }));
+                Text("Try changing renderer!", StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_BODY, textColor = COLOR_ORANGE }));
                 { Element(ID("RendererSpacerRight"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 32 }) } })); }
                 
                 renderer_button_active :: (text: string) #expand {
@@ -325,7 +325,7 @@ renderer_page_desktop :: () {
                     Text(text, StoreTextElementConfig(.{
                         /*.disablePointerEvents = true,*/
                         fontSize  = 28,
-                        fontId    = FONT_BODY_36,
+                        fontId    = FONT_BODY,
                         textColor = COLOR_LIGHT 
                     }));
                 }
@@ -353,7 +353,7 @@ renderer_page_desktop :: () {
                     Text(text, StoreTextElementConfig(.{
                         /*.disablePointerEvents = true,*/
                         fontSize = 28,
-                        fontId = FONT_BODY_36,
+                        fontId = FONT_BODY,
                         textColor = COLOR_RED
                     }));
                 }
@@ -391,13 +391,13 @@ debugger_page_desktop :: () {
     );
         Text("Integrated Debug Tools", StoreTextElementConfig(.{
             fontSize  = 52,
-            fontId    = FONT_TITLE_56,
+            fontId    = FONT_TITLE,
             textColor = COLOR_LIGHT
         }));
         
         { Element(ID("DebuggerSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) }})); }
         
-        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_LIGHT });
+        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_LIGHT });
         Text("Clay includes built in \"Chrome Inspector\"-style debug tooling.", config);
         Text("View your layout hierarchy and config in real time.", config);
         
@@ -405,7 +405,7 @@ debugger_page_desktop :: () {
         
         Text("Press the \"d\" key to try it out now!", StoreTextElementConfig(.{
             fontSize  = 32,
-            fontId    = FONT_TITLE_36,
+            fontId    = FONT_TITLE,
             textColor = COLOR_ORANGE
         }));
     }

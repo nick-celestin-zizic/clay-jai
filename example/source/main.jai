@@ -58,6 +58,7 @@ state := State.{
 main :: () {
     using state;
     set_working_directory(String.path_strip_filename(System.get_path_of_running_executable()));
+    main_thread_context = *context;
     
     #if OS == .WINDOWS {
         Windows :: #import "Windows";
@@ -67,17 +68,31 @@ main :: () {
         Windows.timeBeginPeriod(1);
     }
     
-    { using Raylib.ConfigFlags;
-        Raylib.SetConfigFlags(xx (
-            FLAG_VSYNC_HINT     |
-            FLAG_WINDOW_HIGHDPI |
-            FLAG_MSAA_4X_HINT   |
-            FLAG_WINDOW_RESIZABLE
-        ));
-    }
+    WANTED_MSAA :: 8;
+    // On Linux, we need to pass the MSAA value to create_window
+    my_window := Window_Creation.create_window(xx window_width, xx window_height, "A Window", wanted_msaa = WANTED_MSAA);
+
+    // On other operating systems, the MSAA value needs to be passed to *_create_context, so we
+    // need to have an extra step here if you want MSAA.
+    msaa := Simp.prepare_window(my_window, wanted_msaa = WANTED_MSAA);
+    log("Wanted MSAA: %\nChosen MSAA: %", WANTED_MSAA, msaa);
+
+    // Actual render size in pixels can be different from the window dimensions we specified above (for example on high-resolution displays on macOS/iOS).
+    window_width, window_height = xx Simp.get_render_dimensions(my_window);
+
+    Simp.set_render_target(my_window, .LEFT_HANDED);
     
-    Raylib.InitWindow(xx window_width, xx window_height, "Clay - Raylib Renderer Example");
-    Raylib.SetTargetFPS(Raylib.GetMonitorRefreshRate(0));
+    // { using Raylib.ConfigFlags;
+    //     Raylib.SetConfigFlags(xx (
+    //         FLAG_VSYNC_HINT     |
+    //         FLAG_WINDOW_HIGHDPI |
+    //         FLAG_MSAA_4X_HINT   |
+    //         FLAG_WINDOW_RESIZABLE
+    //     ));
+    // }
+    
+    // Raylib.InitWindow(xx window_width, xx window_height, "Clay - Raylib Renderer Example");
+    // Raylib.SetTargetFPS(Raylib.GetMonitorRefreshRate(0));
     
     
     layout_library := load_library(.{});
@@ -86,12 +101,12 @@ main :: () {
     assert(xx layout_library.layout_update);
     assert(xx layout_library.layout_get_clay_state);
     
-    load_font(FONT_TITLE_56,     56, "../resources/Calistoga-Regular.ttf");
-    load_font(FONT_TITLE_36,     36, "../resources/Calistoga-Regular.ttf");
-    load_font(FONT_BODY_16,      16, "../resources/Quicksand-Semibold.ttf");
-    load_font(FONT_BODY_24,      24, "../resources/Quicksand-Semibold.ttf");
-    load_font(FONT_BODY_36,      36, "../resources/Quicksand-Semibold.ttf");
-    load_font(FONT_MONOSPACE_24, 24, "../resources/RobotoMono-Medium.ttf");
+    // load_font(FONT_TITLE_56,     56, "../resources/Calistoga-Regular.ttf");
+    // load_font(FONT_TITLE_36,     36, "../resources/Calistoga-Regular.ttf");
+    // load_font(FONT_BODY_16,      16, "../resources/Quicksand-Semibold.ttf");
+    // load_font(FONT_BODY_24,      24, "../resources/Quicksand-Semibold.ttf");
+    // load_font(FONT_BODY_36,      36, "../resources/Quicksand-Semibold.ttf");
+    // load_font(FONT_MONOSPACE_24, 24, "../resources/RobotoMono-Medium.ttf");
     
     image_syntax = load_image(0, "../resources/declarative.png");
     image_syntax = load_image(1, "../resources/declarative.png");
@@ -102,35 +117,83 @@ main :: () {
     image_check4 = load_image(6, "../resources/check_4.png");
     image_check5 = load_image(7, "../resources/check_5.png");
     
-    while (!Raylib.WindowShouldClose()) {
+    
+    quit := false;
+    want_screenshot := false;
+    while !quit {
         reset_temporary_storage();
+        Input.update_window_events();
+
+        for Input.get_window_resizes() {
+            Simp.update_window(it.window);  // Simp will do nothing if it doesn't care about this window.
+
+            if it.window == my_window {
+                should_reinit := (it.width != xx window_width) || (it.height != xx window_height);
+
+                window_width  = xx it.width;
+                window_height = xx it.height;
+
+                // if should_reinit my_init_fonts();  // Resize the font for the new window size.
+            }
+        }
+
+        for Input.events_this_frame {
+            if it.type == .QUIT then quit = true;
+
+            if it.type == {
+            case .KEYBOARD; {
+                if it.key_pressed && it.key_code == .ESCAPE {
+                    quit = true;
+                }
+                
+                if it.key_code == .MOUSE_BUTTON_LEFT
+                then left_mouse_down = xx it.key_pressed;
+                
+                if it.key_code == #char "D"
+                then is_d_key_pressed = xx it.key_pressed;
+            }
+            case .MOUSE_WHEEL; mouse_wheel_delta.y = xx it.wheel_delta / cast(float) it.typical_wheel_delta;
+            }
+        }
         
-        mouse_position    = cast,force(Math.Vector2) Raylib.GetMousePosition();
-        mouse_wheel_delta = cast,force(Math.Vector2) Raylib.GetMouseWheelMoveV();
-        left_mouse_down   = Raylib.IsMouseButtonDown(0);
-        delta_time        = Raylib.GetFrameTime();
-        is_d_key_pressed  = Raylib.IsKeyPressed(.KEY_D);
-        window_width, window_height = cast(float) Raylib.GetScreenWidth(), cast(float) Raylib.GetScreenHeight();
+        {
+            x, y, ok := Window_Creation.get_mouse_pointer_position();
+            if ok then mouse_position = .{xx x, xx y};
+        }
+        
+        mouse_wheel_delta.y *= 0.9;
+        delta_time = 1.0/60.0;//Raylib.GetFrameTime();
+        // window_width, window_height = xx Simp.get_render_dimensions(my_window);
+        
+        array_reset_keeping_memory(*scissors);
         
         layout_library.layout_update(*state);
-        
         new_library := load_library(layout_library);
         if   new_library.handle
         then layout_library = new_library;
+        
+        Simp.immediate_flush();
+        Simp.swap_buffers(my_window);
     }
+    
 }
 
-using Basic    :: #import "Basic";
-Compiler       :: #import "Compiler";
-Program_Print  :: #import "Program_Print";
-Math           :: #import "Math";
-String         :: #import "String";
-System         :: #import "System";
-Windows        :: #import "Windows";
-Raylib         :: #import "raylib-jai";
-File_Utilities :: #import "File_Utilities";
-File           :: #import "File";
-Clay           :: #import,file "../../module.jai";
+using Basic     :: #import "Basic";
+Compiler        :: #import "Compiler";
+Program_Print   :: #import "Program_Print";
+Math            :: #import "Math";
+File            :: #import "File";
+Hash            :: #import "Hash";
+Hash_Table      :: #import "Hash_Table";
+String          :: #import "String";
+System          :: #import "System";
+Window_Creation :: #import "Window_Creation";
+Windows         :: #import "Windows";
+// Raylib          :: #import "raylib-jai";
+Simp            :: #import "Simp";
+Input           :: #import "Input";
+File_Utilities  :: #import "File_Utilities";
+Clay            :: #import,file "../../module.jai"(link_implementation=false);
 
 load_dynamic_library :: (basename: string, $procedure_table_type: Type) -> *void, procedure_table_type {
     table: procedure_table_type;
@@ -156,158 +219,158 @@ unload_dynamic_library :: inline (library_handle: *void) {
 
 
 // TODO: Simp Renderer so we don't rely on some random raylib module for this example
-Raylib_Font :: struct { fontId: u32; font: Raylib.Font; }
+// Simp_Font :: struct { fontId: u32; font: Simp.Dynamic_Font; }
 
-raylib_fonts: [10]Raylib_Font;
-raylib_images: [10]Raylib.Texture2D;
+// Font_Description :: struct {
+//     path: string;
+//     size: u16;
+// }
 
-raylib_camera: Raylib.Camera;
+simp_fonts: Hash_Table.Table(u32, *Simp.Dynamic_Font);
 
-load_font :: (id: u16, size: u16, path: string) {
-    f := Raylib.LoadFontEx(to_c_string(path), size*2, null, 0);
-    raylib_fonts[id] = .{
-        font   = f,
-        fontId = id,
-    };
-    Raylib.SetTextureFilter(raylib_fonts[id].font.texture, xx Raylib.TextureFilter.RL_TEXTURE_FILTER_BILINEAR);
+simp_images : [10]Simp.Texture;
+scissors: [..]struct { start, end: Math.Vector2; };
+
+get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
+    using Hash_Table;
+    A :: struct { a, b: u16; }
+    
+    foo := A.{id, size};
+    table_id := (cast(*u32) *foo).*;
+    
+    font, found := table_find(*simp_fonts, table_id);
+    if found return font;
+    
+    path := FONT_PATHS[id];
+    font_data, ok := File.read_entire_file(path,, temp);
+    assert(ok);
+    
+    font = Simp.get_font_at_size(cast([]u8)font_data, size);
+    assert(xx font);
+    
+    table_add(*simp_fonts, table_id, font);
+    return font;
 }
 
-load_image :: (id: int, path: string) -> *Raylib.Texture2D {
-    raylib_images[id] = Raylib.LoadTextureFromImage(Raylib.LoadImage(path.data));
-    return *raylib_images[id];
+load_image :: (id: u16, path: string) -> *Simp.Texture {
+    ok := Simp.texture_load_from_file(*simp_images[id], path);
+    assert(ok);
+    return *simp_images[id];
+    // raylib_images[id] = Raylib.LoadTextureFromImage(Raylib.LoadImage(path.data));
+    // return *raylib_images[id];
 }
 
-measure_calls: u32;
-raylib_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call { 
-    using Clay;
-    textSize := Dimensions.{0, 0};
+main_thread_context: *Context;
+raylib_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call {
+    push_context,defer_pop main_thread_context;
+    
+    text_size := Clay.Dimensions.{0, 0};
 
-    maxTextWidth: float = 0;
-    lineTextWidth: float = 0;
+    max_text_width  : float = 0;
+    line_text_width : float = 0;
 
-    textHeight := cast(float)config.fontSize;
-    fontToUse := raylib_fonts[config.fontId].font;
+    text_height := cast(float)config.fontSize;
+    font_to_use := get_font(config.fontId, config.fontSize);
+    // font_to_use := simp_fonts[config.fontId];
 
     for i: 0 ..text.length-1 {
         if (text.chars[i] == #char "\n") {
-            maxTextWidth = ifx maxTextWidth > lineTextWidth then maxTextWidth else lineTextWidth;
-            lineTextWidth = 0;
+            max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
+            line_text_width = 0;
             continue;
         }
-        index := cast(s32)text.chars[i] - 32;
-        if (fontToUse.glyphs[index].advanceX != 0) {
-            lineTextWidth += cast(float)fontToUse.glyphs[index].advanceX;
+        // index := cast(s32)text.chars[i] - 32;
+        glyph := Simp.find_or_create_glyph(font_to_use, text.chars[i]);
+        // glyph
+        if (glyph.advance != 0) {
+            line_text_width += cast(float)glyph.advance;
         } else {
-            lineTextWidth += (fontToUse.recs[index].width + cast(float)fontToUse.glyphs[index].offsetX);
+            line_text_width += (glyph.width + cast(float)glyph.offset_x);
         }
     }
+    
 
-    maxTextWidth = ifx maxTextWidth > lineTextWidth then maxTextWidth else lineTextWidth;
+    max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
 
-    textSize.width = maxTextWidth / 2;
-    textSize.height = textHeight;
+    text_size.width = max_text_width;
+    text_size.height = text_height;
+    
+    // s := string.{xx text.length, xx text.chars };
+    // log("% <= `%`", text_size, s);
 
-    return textSize;
+    return text_size;
 }
 
-raylib_render :: (_commands: *void) {
-    using Clay;
-    R :: Raylib;
-    renderCommands := (cast(*RenderCommandArray) _commands).*;
+raylib_render :: (commands: *Clay.RenderCommandArray) {
+    push_context,defer_pop main_thread_context;
     
-    R.BeginDrawing();
-    R.ClearBackground(R.BLACK);
+    // defer assert(false);
     
-    to_raylib_color :: (color: Color) -> R.Color #expand {
-        return .{ r = cast(u8)(0.5+color.r), g = cast(u8)(0.5+color.g), b = cast(u8)(0.5+color.b), a = cast(u8)(0.5+color.a) };
+    to_math_color :: inline (using color: Clay.Color) -> Math.Vector4 {
+        return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 };
     }
-    
-    round :: (f: float) -> s32 #expand {
-        return xx (f + 0.5);
-    }
-    
-    measure_calls = 0;
-    for j: 0..renderCommands.length-1
-    // for (int j = 0; j < renderCommands.length; j++)
-    {
-        renderCommand := RenderCommandArray_Get(*renderCommands, xx j);
-        boundingBox := renderCommand.boundingBox;
-        if #complete renderCommand.commandType ==
-        {
-            case .TEXT; {
-                // Raylib uses standard C strings so isn't compatible with cheap slices, we need to clone the string to append null terminator
-                text := renderCommand.text;
-                cloned := cast(*u8)alloc(text.length + 1);
-                memcpy(cloned, text.chars, text.length);
-                cloned[text.length] = #char "\0";
-                fontToUse := raylib_fonts[renderCommand.config.textElementConfig.fontId].font;
-                R.DrawTextEx(fontToUse, cloned, .{boundingBox.x, boundingBox.y}, cast(float)renderCommand.config.textElementConfig.fontSize, cast(float)renderCommand.config.textElementConfig.letterSpacing, to_raylib_color(renderCommand.config.textElementConfig.textColor));
-                free(cloned);
-            }
-            case .IMAGE; {
-                imageTexture := (cast(*R.Texture2D)renderCommand.config.imageElementConfig.imageData).*;
-                R.DrawTextureEx(
-                imageTexture,
-                .{boundingBox.x, boundingBox.y},
-                0,
-                boundingBox.width / cast(float)imageTexture.width,
-                R.WHITE);
-            }
-            case .SCISSOR_START; {
-                R.BeginScissorMode(round(boundingBox.x), round(boundingBox.y), round(boundingBox.width), round(boundingBox.height));
-            }
-            case .SCISSOR_END; {
-                R.EndScissorMode();
-            }
-            case .RECTANGLE; {
-                config := renderCommand.config.rectangleElementConfig;
-                if (config.cornerRadius.topLeft > 0) {
-                    radius := (config.cornerRadius.topLeft * 2) / cast(float) (ifx (boundingBox.width < boundingBox.height) then boundingBox.height else boundingBox.width);
-                    R.DrawRectangleRounded(
-                        .{ boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height },
-                        radius, 8, to_raylib_color(config.color)
-                    );
-                } else {
-                    R.DrawRectangle(xx boundingBox.x, xx boundingBox.y, xx boundingBox.width, xx boundingBox.height, to_raylib_color(config.color));
-                }
-            }
-            case .BORDER; {
-                config := renderCommand.config.borderElementConfig;
-                // Left border
-                if (config.left.width > 0) {
-                    R.DrawRectangle(round(boundingBox.x), round(boundingBox.y + config.cornerRadius.topLeft), cast(s32)config.left.width, round(boundingBox.height - config.cornerRadius.topLeft - config.cornerRadius.bottomLeft), to_raylib_color(config.left.color));
-                }
-                // Right border
-                if (config.right.width > 0) {
-                    R.DrawRectangle(round(boundingBox.x + boundingBox.width - config.right.width), round(boundingBox.y + config.cornerRadius.topRight), cast(s32)config.right.width, round(boundingBox.height - config.cornerRadius.topRight - config.cornerRadius.bottomRight), to_raylib_color(config.right.color));
-                }
-                // Top border
-                if (config.top.width > 0) {
-                    R.DrawRectangle(round(boundingBox.x + config.cornerRadius.topLeft), round(boundingBox.y), round(boundingBox.width - config.cornerRadius.topLeft - config.cornerRadius.topRight), cast(s32)config.top.width, to_raylib_color(config.top.color));
-                }
-                // Bottom border
-                if (config.bottom.width > 0) {
-                    R.DrawRectangle(round(boundingBox.x + config.cornerRadius.bottomLeft), round(boundingBox.y + boundingBox.height - config.bottom.width), round(boundingBox.width - config.cornerRadius.bottomLeft - config.cornerRadius.bottomRight), cast(s32)config.bottom.width, to_raylib_color(config.bottom.color));
-                }
-                if (config.cornerRadius.topLeft > 0) {
-                    R.DrawRing(.{ xx round(boundingBox.x + config.cornerRadius.topLeft), xx round(boundingBox.y + config.cornerRadius.topLeft) }, xx round(config.cornerRadius.topLeft - config.top.width), config.cornerRadius.topLeft, 180, 270, 10, to_raylib_color(config.top.color));
-                }
-                if (config.cornerRadius.topRight > 0) {
-                    R.DrawRing(.{ xx round(boundingBox.x + boundingBox.width - config.cornerRadius.topRight), xx round(boundingBox.y + config.cornerRadius.topRight) }, xx round(config.cornerRadius.topRight - config.top.width), config.cornerRadius.topRight, 270, 360, 10, to_raylib_color(config.top.color));
-                }
-                if (config.cornerRadius.bottomLeft > 0) {
-                    R.DrawRing(.{ xx round(boundingBox.x + config.cornerRadius.bottomLeft), xx round(boundingBox.y + boundingBox.height - config.cornerRadius.bottomLeft) }, xx round(config.cornerRadius.bottomLeft - config.top.width), config.cornerRadius.bottomLeft, 90, 180, 10, to_raylib_color(config.bottom.color));
-                }
-                if (config.cornerRadius.bottomRight > 0) {
-                    R.DrawRing(.{ xx round(boundingBox.x + boundingBox.width - config.cornerRadius.bottomRight), xx round(boundingBox.y + boundingBox.height - config.cornerRadius.bottomRight) }, xx round(config.cornerRadius.bottomRight - config.bottom.width), config.cornerRadius.bottomRight, 0.1, 90, 10, to_raylib_color(config.bottom.color));
-                }
-            }
-            case .CUSTOM; #through;
-            case .NONE; #through;
-            case; assert(false, "Error: unhandled render command.");
+    for j: 0..commands.length-1 {
+        command := commands.internalArray[j];
+        bound := command.boundingBox;
+        if #complete command.commandType == {
+        case .TEXT; {
+            Simp.set_shader_for_text();
+            text := string.{xx command.text.length, xx command.text.chars };
+            font := get_font(command.config.textElementConfig.fontId, command.config.textElementConfig.fontSize);
+            Simp.draw_text(font, xx bound.x, xx bound.y+font.character_height, text, to_math_color(command.config.textElementConfig.textColor));
         }
+        case .IMAGE; {
+            texture := (cast(*Simp.Texture)command.config.imageElementConfig.imageData);
+            Simp.set_shader_for_images(texture);
+            Simp.immediate_quad(
+                bound.x, bound.y,
+                bound.x + bound.width,
+                bound.y + bound.height,
+                .{1, 1, 1, 1},
+            );
+        }
+        case .SCISSOR_START; {
+            scissor := type_of(scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.width} };
+            array_add(*scissors, scissor);
+            Simp.set_scissor(scissor.start, scissor.end);
+        }
+        case .SCISSOR_END; {
+            pop(*scissors);
+            if scissors 
+            then Simp.set_scissor(scissors[scissors.count-1].start, scissors[scissors.count-1].end);
+            else Simp.set_scissor(0, 0, xx state.window_width, xx state.window_height);
+        }
+        case .RECTANGLE; {
+            config := command.config.rectangleElementConfig;
+            Simp.set_shader_for_color(true);
+            if (config.cornerRadius.topLeft > 0) {
+                // TODO: steal rounded rectangle stuff from GetRect
+                Simp.immediate_quad(
+                    bound.x, bound.y,
+                    bound.x + bound.width,
+                    bound.y + bound.height,
+                    to_math_color(config.color)
+                );
+            } else {
+                Simp.immediate_quad(
+                    bound.x, bound.y,
+                    bound.x + bound.width,
+                    bound.y + bound.height,
+                    to_math_color(config.color)
+                );
+                // R.DrawRectangle(xx boundingBox.x, xx boundingBox.y, xx boundingBox.width, xx boundingBox.height, to_raylib_color(config.color));
+            }
+        }
+        case .BORDER; {
+            // TODO: steal rounded rectangle code from getrect
+            // log("border");
+        }
+        case .CUSTOM; #through;
+        case .NONE; #through;
+        case; assert(false, "Error: unhandled render command.");
+        }
+        
     }
     
-    // Raylib_Render(render_commands);
-    R.EndDrawing();
+    // assert(false);
 }

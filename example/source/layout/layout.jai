@@ -19,7 +19,7 @@ COLOR_BLOB_BORDER_4 :: Clay.Color.{236, 159, 70, 255};
 COLOR_BLOB_BORDER_5 :: Clay.Color.{240, 189, 100, 255};
 
 HEADER_TEXT_CONFIG :: Clay.TextElementConfig.{
-    fontId    = FONT_BODY_24,
+    fontId    = FONT_BODY,
     fontSize  = 24,
     textColor = .{61, 26, 5, 255},
 };

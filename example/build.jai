@@ -60,8 +60,7 @@ app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
             clear :: "\e[1;1H\e[2J";
             log("%0% was modified. Reloading...", clear, full_path);
             if contains(full_path, "/layout/") {
-                compile_workspaces(build_layout_library());
-                if !app_running then app_start();
+                if compile_workspaces(build_layout_library()) && !app_running then app_start();
             } else {
                 app_stop();
                 if   compile_workspaces(build_layout_library(), build_runner())

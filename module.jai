@@ -31,6 +31,8 @@
 
 // macro api
 
+#if link_implementation {
+
 Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig) #expand {
     OpenElement();
     AttachId(id);
@@ -124,12 +126,6 @@ Clay__generation: u32 #elsewhere clay;
 Clay__arenaResetOffset: u64 #elsewhere clay;
 Clay__internalArena: Arena #elsewhere clay;
 
-Clay__tArray :: struct {
-	capacity: u32;
-	length: u32;
-	internalArray: *void;
-}
-
 Clay__layoutElements: Clay__tArray #elsewhere clay;
 Clay__renderCommands: Clay__tArray #elsewhere clay;
 Clay__openLayoutElementStack: Clay__tArray #elsewhere clay;
@@ -171,6 +167,14 @@ Clay__debugElementData: Clay__tArray #elsewhere clay;
 
 Clay__MeasureText: (text: *String, config: *TextElementConfig) -> Dimensions #c_call #elsewhere clay;
 Clay__QueryScrollOffset: (elementId: u32) -> Vector2 #c_call #elsewhere clay;
+
+} // #if link_implementation
+
+Clay__tArray :: struct {
+	capacity: u32;
+	length: u32;
+	internalArray: *void;
+}
 
 // Raylib_Font :: struct { fontId: u32; font: Raylib.Font; }
 // Clay_Raylib_Render :: (renderCommands: RenderCommandArray) -> void #c_call #elsewhere;
@@ -561,10 +565,12 @@ OpenTextElement :: (text: String, textConfig: *TextElementConfig) -> void #forei
 
 #scope_file
 
-#import "Basic"; // For assert
-
 clay :: #library,no_dll "windows/clay";
 } // #if link_implementation
+
+#scope_file
+
+#import "Basic"; // For assert
 
 #run {
     {

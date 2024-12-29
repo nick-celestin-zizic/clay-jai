@@ -28,7 +28,7 @@ State :: struct {
     
     // measure_text: (text: *void, config: *void) -> Clay.Dimensions #c_call;
     measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
-    render: (commands: *void);
+    render: (commands: *Clay.RenderCommandArray);
 }
 
 Clay_State :: struct {
@@ -105,12 +105,16 @@ Clay_State :: struct {
 // Clay._arenaResetOffset
 // Clay._internalArena
 
-FONT_BODY_16      : u16 : 0;
-FONT_BODY_24      : u16 : 1;
-FONT_BODY_36      : u16 : 2;
-FONT_TITLE_56     : u16 : 3;
-FONT_TITLE_36     : u16 : 4;
-FONT_MONOSPACE_24 : u16 : 5;
+
+FONT_PATHS :: string.[
+    "../resources/Calistoga-Regular.ttf",  // FONT_TITLE_PATH
+    "../resources/Quicksand-Semibold.ttf", // FONT_BODY_PATH
+    "../resources/RobotoMono-Medium.ttf",  // FONT_MONOSPACE_PATH
+];
+
+FONT_TITLE     : u16 : 0;
+FONT_BODY      : u16 : 1;
+FONT_MONOSPACE : u16 : 2;
 
 Layout_Library_Procedures :: struct {
     layout_get_clay_state : () -> Clay_State;
