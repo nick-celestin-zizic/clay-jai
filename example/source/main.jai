@@ -52,8 +52,8 @@ load_library :: (old_library: Library) -> Library {
 }
 
 state := State.{
-    measure_text = raylib_measure_text,
-    render = raylib_render,
+    measure_text = simp_measure_text,
+    render = simp_render,
 };
 main :: () {
     using state;
@@ -261,7 +261,7 @@ load_image :: (id: u16, path: string) -> *Simp.Texture {
 }
 
 main_thread_context: *Context;
-raylib_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call {
+simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call {
     push_context,defer_pop main_thread_context;
     
     text_size := Clay.Dimensions.{0, 0};
@@ -301,7 +301,7 @@ raylib_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> 
     return text_size;
 }
 
-raylib_render :: (commands: *Clay.RenderCommandArray) {
+simp_render :: (commands: *Clay.RenderCommandArray) {
     push_context,defer_pop main_thread_context;
     
     // defer assert(false);

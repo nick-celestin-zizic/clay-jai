@@ -47,8 +47,8 @@ app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
     set_build_options_dc(.{do_output=false});
     ok := true; // it's all gonna be ok :)
     
-    ok = make_directory_if_it_does_not_exist("output");                           assert(ok);
-    ok = copy_file("modules/raylib-jai/windows/raylib.dll", "output/raylib.dll"); assert(ok);
+    ok = make_directory_if_it_does_not_exist("output");
+    assert(ok);
     
     if   compile_workspaces(build_layout_library(), build_runner())
     then app_start();
