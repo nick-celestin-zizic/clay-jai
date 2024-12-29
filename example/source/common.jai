@@ -5,9 +5,9 @@ Scrollbar_Data :: struct {
 }
 
 State :: struct {
-    scrollbar_data   := Scrollbar_Data.{};
-    animationCounter := 0.0;
-    debugEnabled     := false;
+    scrollbar_data    := Scrollbar_Data.{};
+    animation_counter := 0.0;
+    debugEnabled      := false;
     
     window_width  := 1024 * 1.0;
     window_height := 768 * 1.0;
@@ -112,6 +112,34 @@ FONT_TITLE_56     : u16 : 3;
 FONT_TITLE_36     : u16 : 4;
 FONT_MONOSPACE_24 : u16 : 5;
 
-layout_get_clay_state_proc_type :: #type () -> Clay_State;
-layout_init_proc_type           :: #type (*State, *Clay_State) -> ();
-layout_update_proc_type         :: #type (*State) -> ();
+Layout_Library_Procedures :: struct {
+    layout_get_clay_state : () -> Clay_State;
+    layout_init           : (*State, *Clay_State) -> ();
+    layout_update         : (*State) -> ();
+}
+
+// layout_get_clay_state_proc_type :: #type () -> Clay_State;
+// layout_init_proc_type           :: #type (*State, *Clay_State) -> ();
+// layout_update_proc_type         :: #type (*State) -> ();
+
+logx :: ($code: Code, $show_lhs := true, $show_type := true , loc := #caller_location) #expand {
+    result   := #insert code;
+    filename := String.path_filename(loc.fully_pathed_filename);
+
+    #if show_lhs {
+        REPR :: #run -> string {
+            using Compiler;
+            using Program_Print;
+            sb: String_Builder;
+            print_expression(*sb, compiler_get_nodes(code));
+            return builder_to_string(*sb);
+        }
+        #if  show_type
+        then Basic.log("%: % = %", REPR, type_of(result), result);
+        else Basic.log("% := %", REPR, result);
+    } else {
+        #if  show_loc
+        then Basic.log("% (%)", result, type_of(result));
+        else Basic.log("%", result);
+    }
+}

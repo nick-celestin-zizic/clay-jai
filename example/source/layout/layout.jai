@@ -24,10 +24,8 @@ HEADER_TEXT_CONFIG :: Clay.TextElementConfig.{
     textColor = .{61, 26, 5, 255},
 };
 
-create_layout :: (using state: State) -> Clay.RenderCommandArray {
+create_layout :: () {
     using Clay;
-    BeginLayout();
-    
     mobile_screen := window_width < window_height;
     
     { Element(ID("OuterContainer"), Layout(.{
@@ -90,289 +88,43 @@ create_layout :: (using state: State) -> Clay.RenderCommandArray {
             }
         }
         
-        stripe :: inline (name: string, color: Color) { Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(4) }}), Rectangle(.{ color = color })); }
+        stripe :: inline (name: string, color: Color) {
+            Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(4) }}), Rectangle(.{ color = color }));
+        }
+        
         stripe("TopBorder1", COLOR_TOP_BORDER_5);
         stripe("TopBorder2", COLOR_TOP_BORDER_4);
         stripe("TopBorder3", COLOR_TOP_BORDER_3);
         stripe("TopBorder4", COLOR_TOP_BORDER_2);
         stripe("TopBorder5", COLOR_TOP_BORDER_1);
         
-        // stripe("TopBorder41", COLOR_TOP_BORDER_2);
-        // stripe("TopBorder51", COLOR_TOP_BORDER_1);
-        // stripe("TopBorder41", COLOR_TOP_BORDER_2);
-        // stripe("TopBorder51", COLOR_TOP_BORDER_1);
-        // stripe("TopBorder41", COLOR_TOP_BORDER_2);
-        // stripe("TopBorder51", COLOR_TOP_BORDER_1);
-        
         { Element(ID("OuterScrollContainer"),
             Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
             Scroll(.{ vertical = true }),
             Border(.{ betweenChildren = .{2, COLOR_RED} })
         );
-            Basic.assert(!mobile_screen);
             if mobile_screen {
+                Basic.log_error("TODO: mobile layout");
                 // LandingPageMobile();
                 // FeatureBlocksMobile();
                 // DeclarativeSyntaxPageMobile();
                 // HighPerformancePageMobile(lerp_value);
                 // RendererPageMobile();
             } else {
-                landing_page_desktop(state);
-                feature_blocks_desktop(state);
-                declarative_syntax_page_desktop(state);
-                high_performance_page_desktop(state);
-                // RendererPageDesktop();
-                // DebuggerPageDesktop();
-            }
-        }
-    }
-    
-    return EndLayout();
-}
-
-landing_page_desktop :: (using state: State) {
-    using Clay;
-    
-    { Element(ID("LandingPage1Desktop"),
-        Layout(.{
-            sizing = .{ width = SizingGrow(), height = SizingFit(.{ min = window_height - 70 }) },
-            childAlignment = .{y = .CENTER}, padding = .{ x = 50 } }
-        )
-    );
-        
-        { Element(ID("LandingPage1"),
-            Layout(.{
-                sizing = .{ SizingGrow(), SizingGrow() },
-                childAlignment = .{y = .CENTER},
-                padding = .{ 32, 32 }, childGap = 32 }
-            ),
-            Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
-        );
-            { Element(ID("LeftText"),
-                Layout(.{
-                    sizing = .{ width = SizingPercent(0.55) },
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    childGap = 8
-                })
-            );
-                config := StoreTextElementConfig(.{ fontSize = 56, fontId = FONT_TITLE_56, textColor = COLOR_RED });
-                Text("Clay is a flex-box style UI auto layout library in C, with declarative syntax and microsecond performance.", config);
-                
-                { Element(ID("LandingPageSpacer"),
-                    Layout(.{
-                        sizing = .{ width = SizingGrow(), height = SizingFixed(32) }
-                    })
-                );
-                    config := StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_TITLE_36, textColor = COLOR_ORANGE });
-                    Text("Clay is laying out this webpage right now!", config);
-                }
-            }
-            
-            landing_page_blob :: (index: u32, color: Color, text: string, imageData: *void) {
-                font_size: u16 = 24;
-                Element(ID("HeroBlob", index),
-                    Layout(.{
-                        sizing = .{ width = SizingGrow(.{ max = 480 }) },
-                        padding = .{16, 16},
-                        childGap = 16,
-                        childAlignment = .{y = .CENTER} }
-                    ),
-                    BorderOutsideRadius(2, color, 10)
-                );
-                    
-                { Element(ID("CheckImage", index),
-                    Layout(.{ sizing = .{ width = SizingFixed(32) } }),
-                    Image(.{ sourceDimensions = .{ 128, 128 }, imageData = imageData })
-                ); }
-                
-                Text(text, StoreTextElementConfig(.{ fontSize = font_size, fontId = FONT_BODY_24, textColor = color }));
-            }
-            
-            { Element(ID("HeroImageOuter"),
-                Layout(.{
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    sizing = .{ width = SizingPercent(0.45) },
-                    childAlignment = .{ x = .CENTER },
-                    childGap = 16
-                })
-            );
-                
-                id : u32 = 0;
-                landing_page_blob(id, COLOR_BLOB_BORDER_5, "High performance", image_check5); id += 1;
-                landing_page_blob(id, COLOR_BLOB_BORDER_4, "Flexbox-style responsive layout", image_check4); id += 1;
-                landing_page_blob(id, COLOR_BLOB_BORDER_3, "Declarative syntax", image_check3); id += 1;
-                landing_page_blob(id, COLOR_BLOB_BORDER_2, "Single .h file for C/C++", image_check2); id += 1;
-                landing_page_blob(id, COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", image_check1); id += 1;
-                
-                // landing_page_blob(id, COLOR_BLOB_BORDER_1, "Very nice Jai bindings", image_check1); id += 1;
-                // landing_page_blob(id, COLOR_BLOB_BORDER_1, "Live Editing!!! :)", image_check1); id += 1;
+                landing_page_desktop();
+                feature_blocks_desktop();
+                declarative_syntax_page_desktop();
+                high_performance_page_desktop();
+                renderer_page_desktop();
+                debugger_page_desktop();
             }
         }
     }
 }
 
-feature_blocks_desktop :: (using state: State) {
-    using Clay;
-    { Element(ID("FeatureBlocksOuter"),
-        Layout(.{ sizing = .{ width = SizingGrow() } })
-    );
-        { Element(ID("FeatureBlocksInner"),
-            Layout(.{ sizing = .{ width = SizingGrow() }, childAlignment = .{ y = .CENTER } }),
-            Border(.{ betweenChildren = .{ width = 2, color = COLOR_RED } })
-        );
-        
-            text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_RED });
-            layout_config := LayoutConfig.{
-                layoutDirection = .TOP_TO_BOTTOM,
-                sizing = .{ width = SizingPercent(0.5) },
-                childAlignment = .{0, .CENTER},
-                padding = .{50, 32},
-                childGap = 8
-            };
-            
-            { Element(ID("HFileBoxOuter"), Layout(layout_config));
-                { Element(ID("HFileIncludeOuter"),
-                    Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
-                    Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
-                );
-                    config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY_24, textColor = COLOR_LIGHT });
-                    Text("#define CLAY_IMPLEMENTATION", config);
-                    Text("#include clay.h", config);
-                }
-                Text("~2000 lines of C99.", text_config);
-                Text("Zero dependencies, including no C standard library.", text_config);
-            }
-            { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
-                Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY_24, fontSize = 24, textColor = COLOR_ORANGE }));
-                Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
-                Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
-            }
-        }
-    }
-}
+#load "desktop.jai";
 
-declarative_syntax_page_desktop :: (using state: State) {
-    using Clay;
-    { Element(ID("SyntaxPageDesktop"),
-        Layout(.{
-            sizing = .{ SizingGrow(), SizingFit(.{ min = window_height - 50 }) },
-            childAlignment = .{0, .CENTER},
-            padding = .{x = 50}
-        })
-    );
-        { Element(ID("SyntaxPage"),
-            Layout(.{
-                sizing = .{ SizingGrow(), SizingGrow() },
-                childAlignment = .{ 0, .CENTER },
-                padding = .{ 32, 32 },
-                childGap = 32 }
-            ),
-            Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
-        );
-            { Element(ID("SyntaxPageLeftText"),
-                Layout(.{
-                    sizing = .{ width = SizingPercent(0.5) },
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    childGap = 8
-                })
-            );
-                Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE_56, textColor = COLOR_RED }));
-                { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } })); }
-                
-                config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_RED });
-                Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
-                Text("Mix elements with standard C code like loops, conditionals and functions.", config);
-                Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
-            }
-            
-            { Element(ID("SyntaxPageRightImage"),
-                Layout(
-                    .{ sizing = .{ width = SizingPercent(0.50) },
-                    childAlignment = .{x = .CENTER}
-                }),
-            );
-                { Element(ID("SyntaxPageRightImageInner"),
-                    Layout(.{ sizing = .{ width = SizingGrow(.{ max = 568 }) } }),
-                    Image(.{ sourceDimensions = .{1136, 1194}, imageData = image_syntax })
-                ); }
-            }
-        }
-    }
-}
-
-LOREM_IPSUM_TEXT   :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
-LOREM_IPSUM_CONFIG :: Clay.TextElementConfig.{ fontSize = 18, fontId = FONT_TITLE_56, textColor = COLOR_LIGHT };
-
-high_performance_page_desktop :: (using state: State) {
-    using Clay;
-    Element(ID("PerformanceDesktop"),
-        Layout(.{
-            sizing = .{ SizingGrow(), SizingFit(.{ min = xx (window_height - 50) }) },
-            childAlignment = .{0, .CENTER},
-            padding = .{82, 32},
-            childGap = 64
-        }),
-        Rectangle(.{ color = COLOR_RED })
-    );
-    
-    { Element(ID("PerformanceLeftText"),
-        Layout(.{
-            sizing = .{ width = SizingPercent(0.5) },
-            layoutDirection = .TOP_TO_BOTTOM,
-            childGap = 8
-        })
-    );
-        Text("High Performance", StoreTextElementConfig(.{
-            fontSize = 52,
-            fontId = FONT_TITLE_56,
-            textColor = COLOR_LIGHT
-        }));
-        
-        { Element(ID("PerformanceSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) }})); }
-        
-        Text("Fast enough to recompute your entire UI every frame.", StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_LIGHT }));
-        Text("Small memory footprint (3.5mb default) with static allocation & reuse. No malloc / free.", StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_LIGHT }));
-        Text("Simplify animations and reactive UI design by avoiding the standard performance hacks.", StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY_36, textColor = COLOR_LIGHT }));
-    }
-    
-    { Element(ID("PerformanceRightImageOuter"),
-        Layout(.{
-            sizing = .{ width = SizingPercent(0.50) },
-            childAlignment = .{ x = .CENTER }
-        })
-    );
-        lerp_value := Math.sin(animationCounter*2.5)*0.5 + 0.5;
-        
-        { Element(ID("AnimationDemoContainer"),
-            Layout(.{
-                sizing = .{ SizingGrow(), SizingFixed(400) } }
-            ),
-            BorderAll(.{ width = 2, color = COLOR_LIGHT })
-        );
-            { Element(ID("AnimationDemoContainerLeft"),
-                Layout(.{
-                    sizing = .{ SizingPercent(0.3 + 0.4 * lerp_value), SizingGrow() },
-                    childAlignment = .{y = .CENTER},
-                    padding = .{32, 32} }
-                ),
-                Rectangle(.{ color = cast,force(Color) Math.lerp(cast,force(Math.Vector4) COLOR_RED, cast,force(Math.Vector4) COLOR_ORANGE, lerp_value) })
-            );
-                Text(LOREM_IPSUM_TEXT, *LOREM_IPSUM_CONFIG);
-            }
-            
-            { Element(ID("AnimationDemoContainerRight"),
-                Layout(.{
-                    sizing = .{ SizingGrow(), SizingGrow() },
-                    childAlignment = .{y = .CENTER},
-                    padding = .{32, 32} }
-                ),
-                Rectangle(.{ color = cast,force(Color) Math.lerp(cast,force(Math.Vector4) COLOR_ORANGE, cast,force(Math.Vector4) COLOR_RED, lerp_value) })
-            );
-                Text(LOREM_IPSUM_TEXT, *LOREM_IPSUM_CONFIG);
-            }
-        }
-    }
-}
+active_renderer_index : int = 0;
 
 #load "../common.jai";
 Basic :: #import "Basic";
@@ -380,9 +132,13 @@ Math  :: #import "Math";
 Clay  :: #import,file "../../../module.jai";
 
 
+using global_state: *State;
+
 #program_export "layout_update"
-layout_update : layout_update_proc_type : (using state: *State) {
+layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *State) {
     using Clay;
+    Basic.assert(xx state);
+    global_state = state;
     
     mouseWheelX := mouse_wheel_delta.x;
     mouseWheelY := mouse_wheel_delta.y;
@@ -394,6 +150,10 @@ layout_update : layout_update_proc_type : (using state: *State) {
     }
     
     // mouse_position := Math.Vector2.{R.GetMousePosition().x, R.GetMousePosition().y};
+    // SetQueryScrollOffsetFunction((id: u32) -> Vector2 #c_call {
+    //     using global_state;
+    //     return cast,force(Clay.Vector2) (mouse_wheel_delta);
+    // });
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });
     if (!left_mouse_down) {
@@ -421,13 +181,14 @@ layout_update : layout_update_proc_type : (using state: *State) {
         }
     }
     
-    // delta_time := R.GetFrameTime();
     if (delta_time == delta_time) { // NaN propagation can cause pain here
-        animationCounter += delta_time;
+        animation_counter += delta_time;
     }
 
     UpdateScrollContainers(true, .{mouseWheelX, mouseWheelY}, delta_time);
-    render_commands := create_layout(state);
+    BeginLayout();
+    create_layout();
+    render_commands := EndLayout();
     render(*render_commands);
 }
 
@@ -435,7 +196,7 @@ layout_update : layout_update_proc_type : (using state: *State) {
 // do this to reload the state of the library properly.
 
 #program_export "layout_init"
-layout_init : layout_init_proc_type : (using state: *State, clay_state: *Clay_State) {
+layout_init : type_of(Layout_Library_Procedures.layout_init) : (using state: *State, clay_state: *Clay_State) {
     if clay_state {
         Clay.Clay__pointerInfo = clay_state.pointerInfo;
         Clay.Clay__layoutDimensions = clay_state.layoutDimensions;
@@ -507,7 +268,7 @@ layout_init : layout_init_proc_type : (using state: *State, clay_state: *Clay_St
 }
 
 #program_export "layout_get_clay_state"
-layout_get_clay_state : layout_get_clay_state_proc_type : () -> Clay_State {
+layout_get_clay_state : type_of(Layout_Library_Procedures.layout_get_clay_state) : () -> Clay_State {
     clay_state: Clay_State = ---;
     clay_state.pointerInfo = Clay.Clay__pointerInfo;
     clay_state.layoutDimensions = Clay.Clay__layoutDimensions;

@@ -1,4 +1,3 @@
-
 build_layout_library :: () -> Workspace {
     w := compiler_create_workspace("Layout Library");
     using options := get_build_options(w);
@@ -39,35 +38,40 @@ build_runner :: () -> Workspace {
     return w;
 }
 
+app: Process;
+app_running := false;
+app_start :: () { app_running = create_process(*app, "output/jai-test.exe"); }
+app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
+
 #run {
     set_build_options_dc(.{do_output=false});
     ok := true; // it's all gonna be ok :)
     
-    ok = make_directory_if_it_does_not_exist("output");
-    assert(ok);
+    ok = make_directory_if_it_does_not_exist("output");                           assert(ok);
+    ok = copy_file("modules/raylib-jai/windows/raylib.dll", "output/raylib.dll"); assert(ok);
     
-    ok = compile_workspaces(
-        build_layout_library(),
-        build_runner(),
-    );
-    assert(ok);
+    if   compile_workspaces(build_layout_library(), build_runner())
+    then app_start();
     
-    ok = copy_file("modules/raylib-jai/windows/raylib.dll", "output/raylib.dll");
-    assert(ok);
     
     watcher: File_Watcher(void);
     ok = init(*watcher,
         (watcher: *File_Watcher(void), using change: *File_Change, user_data: *void) {
             clear :: "\e[1;1H\e[2J";
             log("%0% was modified. Reloading...", clear, full_path);
-            compile_workspaces(build_layout_library());
+            if contains(full_path, "/layout/") {
+                compile_workspaces(build_layout_library());
+                if !app_running then app_start();
+            } else {
+                app_stop();
+                if   compile_workspaces(build_layout_library(), build_runner())
+                then app_start();
+            }
+            
         },
         null, events_to_watch = .ALL_EVENTS, verbose = true
-    );
-    assert(ok);
-    
-    ok = add_directories(*watcher, "source/layout/");
-    assert(ok);
+    );                                        assert(ok);
+    ok = add_directories(*watcher, "source"); assert(ok);
     
     while true {
         reset_temporary_storage();
