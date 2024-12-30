@@ -17,35 +17,40 @@ State :: struct {
     is_d_key_pressed  : bool;
     left_mouse_down   : bool;
     
-    Image :: struct {
-        path: string;
-        data: Simp.Texture;
-    }
-    
     images: struct {
-        syntax := Image.{path="../resources/declarative.png"};
-        debug0 := Image.{path="../resources/debugger.png"};
-        check1 := Image.{path="../resources/check_1.png"};
-        check2 := Image.{path="../resources/check_2.png"};
-        check3 := Image.{path="../resources/check_3.png"};
-        check4 := Image.{path="../resources/check_4.png"};
-        check5 := Image.{path="../resources/check_5.png"};
+        syntax: Simp.Texture; @"../resources/declarative.png"
+        debug0: Simp.Texture; @"../resources/debugger.png"
+        check1: Simp.Texture; @"../resources/check_1.png"
+        check2: Simp.Texture; @"../resources/check_2.png"
+        check3: Simp.Texture; @"../resources/check_3.png"
+        check4: Simp.Texture; @"../resources/check_4.png"
+        check5: Simp.Texture; @"../resources/check_5.png"
     };
+    
+    Font_Paths :: struct {
+        FONT_TITLE :: "../resources/Calistoga-Regular.ttf";
+        FONT_BODY  :: "../resources/Quicksand-Semibold.ttf";
+        FONT_MONO  :: "../resources/RobotoMono-Medium.ttf";
+    }
     
     // measure_text: (text: *void, config: *void) -> Clay.Dimensions #c_call;
     measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
     render: (commands: *Clay.RenderCommandArray);
 }
 
-FONT_PATHS :: string.[
-    "../resources/Calistoga-Regular.ttf",  // FONT_TITLE_PATH
-    "../resources/Quicksand-Semibold.ttf", // FONT_BODY_PATH
-    "../resources/RobotoMono-Medium.ttf",  // FONT_MONOSPACE_PATH
-];
+// here we paste in all of the members of Font_Paths so that they are available as u16 constants!
+// this means we don't have to manually make sure that they match up!
+#insert -> string {
+    using Basic;
+    sb: String_Builder;
+    tis := type_info(State.Font_Paths);
+    for tis.members {
+        str := (cast(*string)(tis.constant_storage.data + it.offset_into_constant_storage)).*;
+        print(*sb, "% : u16 : %;\n", it.name, it_index);
+    }
+    return builder_to_string(*sb);;
+}
 
-FONT_TITLE     : u16 : 0;
-FONT_BODY      : u16 : 1;
-FONT_MONOSPACE : u16 : 2;
 
 Layout_Library_Procedures :: struct {
     layout_get_clay_state : () -> Clay_State;

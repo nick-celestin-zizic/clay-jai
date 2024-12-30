@@ -24,12 +24,10 @@ load_library :: (old_library: Library) -> Library {
         }
     }
     
+    // we do this to check that dll is ready to be opened
+    // and not still being used by the compiler to generate it
     dummy_library := load_dynamic_library("layout-new", struct{});
-    if !dummy_library {
-        code, description := System.get_error_value_and_string();
-        log_error("Could not load layout library: (%) %", code, description);
-        return .{};
-    }
+    if !dummy_library return .{};
     
     clay_state := ifx old_library.layout_get_clay_state then old_library.layout_get_clay_state();
     
@@ -45,9 +43,13 @@ load_library :: (old_library: Library) -> Library {
     file_delete("layout-new.lib");
     file_delete("layout-new.pdb");
     
-    
     using new_library: Library = ---;
     handle, procedures = load_dynamic_library("layout", Layout_Library_Procedures);
+    assert(xx handle);
+    assert(xx layout_init);
+    assert(xx layout_update);
+    assert(xx layout_get_clay_state);
+    
     layout_init(*state, ifx old_library.layout_get_clay_state then *clay_state);
     return new_library;
 }
@@ -82,26 +84,14 @@ main :: () {
     
     
     layout_library := load_library(.{});
-    assert(xx layout_library.handle);
-    assert(xx layout_library.layout_init);
-    assert(xx layout_library.layout_update);
-    assert(xx layout_library.layout_get_clay_state);
     
     for type_info(type_of(state.images)).members {
-        assert(it.type == type_info(State.Image));
-        image := ((cast(*State.Image)*state.images) + it_index);
-        ok := Simp.texture_load_from_file(*image.data, image.path);
+        assert(it.type == type_info(Simp.Texture));
+        assert(it.notes.count == 1);
+        texture := ((cast(*Simp.Texture)*state.images) + it_index);
+        ok := Simp.texture_load_from_file(texture, it.notes[0]);
         assert(ok);
     }
-    
-    // id: u16;
-    // image_syntax = load_image(id, "../resources/declarative.png"); id += 1;
-    // image_debug0 = load_image(id, "../resources/debugger.png");    id += 1;
-    // image_check1 = load_image(id, "../resources/check_1.png");     id += 1;
-    // image_check2 = load_image(id, "../resources/check_2.png");     id += 1;
-    // image_check3 = load_image(id, "../resources/check_3.png");     id += 1;
-    // image_check4 = load_image(id, "../resources/check_4.png");     id += 1;
-    // image_check5 = load_image(id, "../resources/check_5.png");     id += 1;
     
     quit := false;
     while !quit {
@@ -208,7 +198,8 @@ get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
     font, found := table_find(*simp_fonts, table_id);
     if found return font;
     
-    path := FONT_PATHS[id];
+    path := ((cast(*string) type_info(State.Font_Paths).constant_storage.data) + id).*;
+    // path := ((cast(*State.Font)state.fonts) + id).path;
     font_data, ok := File.read_entire_file(path,, temp);
     assert(ok);
     
@@ -217,12 +208,6 @@ get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
     
     table_add(*simp_fonts, table_id, font);
     return font;
-}
-
-load_image :: (id: u16, path: string) -> *Simp.Texture {
-    ok := Simp.texture_load_from_file(*simp_images[id], path);
-    assert(ok);
-    return *simp_images[id];
 }
 
 main_thread_context: *Context;

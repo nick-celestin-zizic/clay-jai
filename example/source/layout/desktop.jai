@@ -1,178 +1,176 @@
 landing_page_desktop :: () {
     using Clay;
     
-    { Element(ID("LandingPage1Desktop"),
+    Element(ID("LandingPage1Desktop"),
         Layout(.{
             sizing = .{ width = SizingGrow(), height = SizingFit(.{ min = window_height - 70 }) },
-            childAlignment = .{y = .CENTER}, padding = .{ x = 50 } }
+            childAlignment = .{y = .CENTER},
+            padding = .{ x = 50 } }
         )
     );
         
-        { Element(ID("LandingPage1"),
+    Element(ID("LandingPage1"),
+        Layout(.{
+            sizing = .{ SizingGrow(), SizingGrow() },
+            childAlignment = .{y = .CENTER},
+            padding = .{ 32, 32 },
+            childGap = 32 }
+        ),
+        Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
+    );
+    
+    { Element(ID("LeftText"),
+        Layout(.{
+            sizing = .{ width = SizingPercent(0.55) },
+            layoutDirection = .TOP_TO_BOTTOM,
+            childGap = 8
+        })
+    );
+        config := StoreTextElementConfig(.{ fontSize = 56, fontId = FONT_TITLE, textColor = COLOR_RED });
+        Text("Clay is a flex-box style UI auto layout library in C, with declarative syntax and microsecond performance.", config);
+        
+        { Element(ID("LandingPageSpacer"),
             Layout(.{
-                sizing = .{ SizingGrow(), SizingGrow() },
-                childAlignment = .{y = .CENTER},
-                padding = .{ 32, 32 }, childGap = 32 }
-            ),
-            Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
+                sizing = .{ width = SizingGrow(), height = SizingFixed(32) }
+            })
         );
-            { Element(ID("LeftText"),
-                Layout(.{
-                    sizing = .{ width = SizingPercent(0.55) },
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    childGap = 8
-                })
-            );
-                config := StoreTextElementConfig(.{ fontSize = 56, fontId = FONT_TITLE, textColor = COLOR_RED });
-                Text("Clay is a flex-box style UI auto layout library in C, with declarative syntax and microsecond performance.", config);
-                
-                { Element(ID("LandingPageSpacer"),
-                    Layout(.{
-                        sizing = .{ width = SizingGrow(), height = SizingFixed(32) }
-                    })
-                );
-                    config := StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_TITLE, textColor = COLOR_ORANGE });
-                    Text("Clay is laying out this webpage right now!", config);
-                }
-            }
-            
-            
-            { Element(ID("HeroImageOuter"),
-                Layout(.{
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    sizing = .{ width = SizingPercent(0.45) },
-                    childAlignment = .{ x = .CENTER },
-                    childGap = 16
-                })
-            );
-                
-                index : u32 = 0;
-                landing_page_blob :: (color: Color, text: string, imageData: *Simp.Texture) #expand {
-                    Element(ID("HeroBlob", index),
-                        Layout(.{
-                            sizing         = .{width = SizingGrow(.{ max = 480 })},
-                            padding        = .{16, 16},
-                            childGap       = 16,
-                            childAlignment = .{y = .CENTER} }
-                        ),
-                        BorderOutsideRadius(2, color, 10)
-                    );
-                        
-                    { Element(ID("CheckImage", index),
-                        Layout(.{ sizing = .{ width = SizingFixed(32) } }),
-                        Image(.{ sourceDimensions = .{ 128, 128 }, imageData = imageData })
-                    ); }
-                    
-                    Text(text, StoreTextElementConfig(.{
-                        fontSize  = 24,
-                        fontId    = FONT_BODY,
-                        textColor = color 
-                    }));
-                    
-                    index += 1;
-                }
-                
-                landing_page_blob(COLOR_BLOB_BORDER_5, "High performance", *images.check5.data);
-                landing_page_blob(COLOR_BLOB_BORDER_4, "Flexbox-style responsive layout", *images.check4.data);
-                landing_page_blob(COLOR_BLOB_BORDER_3, "Declarative syntax", *images.check3.data);
-                landing_page_blob(COLOR_BLOB_BORDER_2, "Single .h file for C/C++", *images.check2.data);
-                landing_page_blob(COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", *images.check1.data);
-                landing_page_blob(COLOR_BLOB_BORDER_1, "Very nice Jai bindings", *images.check1.data);
-                landing_page_blob(COLOR_BLOB_BORDER_1, "Live Editing!!! :)", *images.check1.data);
-            }
+            config := StoreTextElementConfig(.{ fontSize = 36, fontId = FONT_TITLE, textColor = COLOR_ORANGE });
+            Text("Clay is laying out this webpage right now!", config);
         }
+    }
+    
+    
+    { Element(ID("HeroImageOuter"),
+        Layout(.{
+            layoutDirection = .TOP_TO_BOTTOM,
+            sizing = .{ width = SizingPercent(0.45) },
+            childAlignment = .{ x = .CENTER },
+            childGap = 16
+        })
+    );
+        
+        index : u32 = 0;
+        landing_page_blob :: (color: Color, text: string, imageData: *Simp.Texture) #expand {
+            Element(ID("HeroBlob", index),
+                Layout(.{
+                    sizing         = .{width = SizingGrow(.{ max = 480 })},
+                    padding        = .{16, 16},
+                    childGap       = 16,
+                    childAlignment = .{y = .CENTER}
+                }),
+                BorderOutsideRadius(2, color, 10)
+            );
+                
+            { Element(ID("CheckImage", index),
+                Layout(.{ sizing = .{ width = SizingFixed(32) } }),
+                Image(.{ sourceDimensions = .{ 128, 128 }, imageData = imageData })
+            ); }
+            
+            Text(text, StoreTextElementConfig(.{
+                fontSize  = 24,
+                fontId    = FONT_BODY,
+                textColor = color 
+            }));
+            
+            index += 1;
+        }
+        
+        landing_page_blob(COLOR_BLOB_BORDER_5, "High performance", *images.check5);
+        landing_page_blob(COLOR_BLOB_BORDER_4, "Flexbox-style responsive layout", *images.check4);
+        landing_page_blob(COLOR_BLOB_BORDER_3, "Declarative syntax", *images.check3);
+        landing_page_blob(COLOR_BLOB_BORDER_2, "Single .h file for C/C++", *images.check2);
+        landing_page_blob(COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", *images.check1);
+        landing_page_blob(COLOR_BLOB_BORDER_1, "Very nice Jai bindings", *images.check1);
+        landing_page_blob(COLOR_BLOB_BORDER_1, "Live Editing!!! :)", *images.check1);
     }
 }
 
 feature_blocks_desktop :: () {
     using Clay;
-    { Element(ID("FeatureBlocksOuter"),
-        Layout(.{ sizing = .{ width = SizingGrow() } })
+    
+    Element(ID("FeatureBlocks"),
+        Layout(.{ sizing = .{ width = SizingGrow() }, childAlignment = .{ y = .CENTER } }),
+        Border(.{ betweenChildren = .{ width = 2, color = COLOR_RED } })
     );
-        { Element(ID("FeatureBlocksInner"),
-            Layout(.{ sizing = .{ width = SizingGrow() }, childAlignment = .{ y = .CENTER } }),
-            Border(.{ betweenChildren = .{ width = 2, color = COLOR_RED } })
+    
+    text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY, textColor = COLOR_RED });
+    layout_config := LayoutConfig.{
+        layoutDirection = .TOP_TO_BOTTOM,
+        sizing = .{ width = SizingPercent(0.5) },
+        childAlignment = .{0, .CENTER},
+        padding = .{50, 32},
+        childGap = 8
+    };
+    
+    { Element(ID("HFileBoxOuter"), Layout(layout_config));
+        { Element(ID("HFileIncludeOuter"),
+            Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
+            Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
         );
-        
-            text_config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY, textColor = COLOR_RED });
-            layout_config := LayoutConfig.{
-                layoutDirection = .TOP_TO_BOTTOM,
-                sizing = .{ width = SizingPercent(0.5) },
-                childAlignment = .{0, .CENTER},
-                padding = .{50, 32},
-                childGap = 8
-            };
-            
-            { Element(ID("HFileBoxOuter"), Layout(layout_config));
-                { Element(ID("HFileIncludeOuter"),
-                    Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
-                    Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
-                );
-                    config := StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_LIGHT });
-                    Text("#define CLAY_IMPLEMENTATION", config);
-                    Text("#include clay.h", config);
-                }
-                Text("~2000 lines of C99.", text_config);
-                Text("Zero dependencies, including no C standard library.", text_config);
-            }
-            
-            { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
-                Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_ORANGE }));
-                Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
-                Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
-                Text("It even supports Simp!.", text_config);
-            }
+            config := StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_LIGHT });
+            Text("#define CLAY_IMPLEMENTATION", config);
+            Text("#include clay.h", config);
         }
+        Text("~2000 lines of C99.", text_config);
+        Text("Zero dependencies, including no C standard library.", text_config);
+    }
+    
+    { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
+        Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_ORANGE }));
+        Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
+        Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
+        Text("It even supports Simp!.", text_config);
     }
 }
 
 declarative_syntax_page_desktop :: () {
     using Clay;
-    { Element(ID("SyntaxPageDesktop"),
+    Element(ID("SyntaxPageDesktop"),
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = window_height - 50 }) },
             childAlignment = .{0, .CENTER},
             padding = .{x = 50}
         })
     );
-        { Element(ID("SyntaxPage"),
-            Layout(.{
-                sizing = .{ SizingGrow(), SizingGrow() },
-                childAlignment = .{ 0, .CENTER },
-                padding = .{ 32, 32 },
-                childGap = 32 }
-            ),
-            Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
-        );
-            { Element(ID("SyntaxPageLeftText"),
-                Layout(.{
-                    sizing = .{ width = SizingPercent(0.5) },
-                    layoutDirection = .TOP_TO_BOTTOM,
-                    childGap = 8
-                })
-            );
-                Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE, textColor = COLOR_RED }));
-                { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } })); }
-                
-                config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_RED });
-                Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
-                Text("Mix elements with standard C code like loops, conditionals and functions.", config);
-                Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
-            }
-            
-            { Element(ID("SyntaxPageRightImage"),
-                Layout(
-                    .{ sizing = .{ width = SizingPercent(0.50) },
-                    childAlignment = .{x = .CENTER}
-                }),
-            );
-                { Element(ID("SyntaxPageRightImageInner"),
-                    Layout(.{ sizing = .{ width = SizingGrow(.{ max = 568 }) } }),
-                    Image(.{ sourceDimensions = .{1136, 1194}, imageData = *images.syntax.data })
-                ); }
-            }
-        }
+    
+    Element(ID("SyntaxPage"),
+        Layout(.{
+            sizing = .{ SizingGrow(), SizingGrow() },
+            childAlignment = .{ 0, .CENTER },
+            padding = .{ 32, 32 },
+            childGap = 32 }
+        ),
+        Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
+    );
+    
+    { Element(ID("SyntaxPageLeftText"),
+        Layout(.{
+            sizing = .{ width = SizingPercent(0.5) },
+            layoutDirection = .TOP_TO_BOTTOM,
+            childGap = 8
+        })
+    );
+        Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = 52, fontId = FONT_TITLE, textColor = COLOR_RED }));
+        { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } })); }
+        
+        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_RED });
+        Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
+        Text("Mix elements with standard C code like loops, conditionals and functions.", config);
+        Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
     }
+    
+    { Element(ID("SyntaxPageRightImage"),
+        Layout(
+            .{ sizing = .{ width = SizingPercent(0.50) },
+            childAlignment = .{x = .CENTER}
+        }),
+    );
+        Element(ID("SyntaxPageRightImageInner"),
+            Layout(.{ sizing = .{ width = SizingGrow(.{ max = 568 }) } }),
+            Image(.{ sourceDimensions = .{1136, 1194}, imageData = *images.syntax })
+        );
+    }
+    
 }
 
 LOREM_IPSUM_TEXT   :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
@@ -419,7 +417,7 @@ debugger_page_desktop :: () {
     );
         Element(ID("DebuggerPageRightImageInner"),
             Layout(.{ sizing = .{ width = SizingGrow(.{ max = 558 }) } }),
-            Image(.{ sourceDimensions = .{1620, 1474}, imageData = *images.debug0.data })
+            Image(.{ sourceDimensions = .{1620, 1474}, imageData = *images.debug0 })
         );
     }
 }
