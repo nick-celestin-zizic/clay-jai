@@ -6,6 +6,7 @@ Library :: struct {
     using procedures: Layout_Library_Procedures;
 }
 
+my_window: Window_Creation.Window_Type;
 load_library :: (old_library: Library) -> Library {
     using File_Utilities; using File;
     if !file_exists("layout-new.dll") {
@@ -70,7 +71,7 @@ main :: () {
     
     WANTED_MSAA :: 8;
     // On Linux, we need to pass the MSAA value to create_window
-    my_window := Window_Creation.create_window(xx window_width, xx window_height, "A Window", wanted_msaa = WANTED_MSAA);
+    my_window = Window_Creation.create_window(xx window_width, xx window_height, "A Window", wanted_msaa = WANTED_MSAA);
 
     // On other operating systems, the MSAA value needs to be passed to *_create_context, so we
     // need to have an extra step here if you want MSAA.
@@ -79,20 +80,7 @@ main :: () {
 
     // Actual render size in pixels can be different from the window dimensions we specified above (for example on high-resolution displays on macOS/iOS).
     window_width, window_height = xx Simp.get_render_dimensions(my_window);
-
     Simp.set_render_target(my_window, .LEFT_HANDED);
-    
-    // { using Raylib.ConfigFlags;
-    //     Raylib.SetConfigFlags(xx (
-    //         FLAG_VSYNC_HINT     |
-    //         FLAG_WINDOW_HIGHDPI |
-    //         FLAG_MSAA_4X_HINT   |
-    //         FLAG_WINDOW_RESIZABLE
-    //     ));
-    // }
-    
-    // Raylib.InitWindow(xx window_width, xx window_height, "Clay - Raylib Renderer Example");
-    // Raylib.SetTargetFPS(Raylib.GetMonitorRefreshRate(0));
     
     
     layout_library := load_library(.{});
@@ -100,13 +88,6 @@ main :: () {
     assert(xx layout_library.layout_init);
     assert(xx layout_library.layout_update);
     assert(xx layout_library.layout_get_clay_state);
-    
-    // load_font(FONT_TITLE_56,     56, "../resources/Calistoga-Regular.ttf");
-    // load_font(FONT_TITLE_36,     36, "../resources/Calistoga-Regular.ttf");
-    // load_font(FONT_BODY_16,      16, "../resources/Quicksand-Semibold.ttf");
-    // load_font(FONT_BODY_24,      24, "../resources/Quicksand-Semibold.ttf");
-    // load_font(FONT_BODY_36,      36, "../resources/Quicksand-Semibold.ttf");
-    // load_font(FONT_MONOSPACE_24, 24, "../resources/RobotoMono-Medium.ttf");
     
     image_syntax = load_image(0, "../resources/declarative.png");
     image_syntax = load_image(1, "../resources/declarative.png");
@@ -116,7 +97,6 @@ main :: () {
     image_check3 = load_image(5, "../resources/check_3.png");
     image_check4 = load_image(6, "../resources/check_4.png");
     image_check5 = load_image(7, "../resources/check_5.png");
-    
     
     quit := false;
     want_screenshot := false;
@@ -171,9 +151,6 @@ main :: () {
         new_library := load_library(layout_library);
         if   new_library.handle
         then layout_library = new_library;
-        
-        Simp.immediate_flush();
-        Simp.swap_buffers(my_window);
     }
     
 }
@@ -256,8 +233,6 @@ load_image :: (id: u16, path: string) -> *Simp.Texture {
     ok := Simp.texture_load_from_file(*simp_images[id], path);
     assert(ok);
     return *simp_images[id];
-    // raylib_images[id] = Raylib.LoadTextureFromImage(Raylib.LoadImage(path.data));
-    // return *raylib_images[id];
 }
 
 main_thread_context: *Context;
@@ -273,7 +248,7 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
     font_to_use := get_font(config.fontId, config.fontSize);
     // font_to_use := simp_fonts[config.fontId];
 
-    for i: 0 ..text.length-1 {
+    for i: 0..text.length-1 {
         if (text.chars[i] == #char "\n") {
             max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
             line_text_width = 0;
@@ -330,7 +305,7 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             );
         }
         case .SCISSOR_START; {
-            scissor := type_of(scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.width} };
+            scissor := type_of(scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.height} };
             array_add(*scissors, scissor);
             Simp.set_scissor(scissor.start, scissor.end);
         }
@@ -372,5 +347,7 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
         
     }
     
+    Simp.immediate_flush();
+    Simp.swap_buffers(my_window);
     // assert(false);
 }
