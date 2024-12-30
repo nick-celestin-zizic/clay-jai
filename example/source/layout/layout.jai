@@ -129,6 +129,7 @@ active_renderer_index : int = 0;
 #load "../common.jai";
 Basic :: #import "Basic";
 Math  :: #import "Math";
+Simp  :: #import "Simp";
 Clay  :: #import,file "../../../module.jai";
 
 
@@ -181,9 +182,8 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
         }
     }
     
-    if (delta_time == delta_time) { // NaN propagation can cause pain here
-        animation_counter += delta_time;
-    }
+    delta_time :: 1.0/60.0;
+    animation_counter += delta_time;
 
     UpdateScrollContainers(true, .{mouseWheelX, mouseWheelY}, delta_time);
     BeginLayout();

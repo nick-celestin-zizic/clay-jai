@@ -62,9 +62,7 @@ main :: () {
     main_thread_context = *context;
     
     #if OS == .WINDOWS {
-        Windows :: #import "Windows";
         Windows.SetProcessDPIAware();
-
         // Windows is very bad at thread-switching by default unless you do this. Sad.
         Windows.timeBeginPeriod(1);
     }
@@ -89,17 +87,23 @@ main :: () {
     assert(xx layout_library.layout_update);
     assert(xx layout_library.layout_get_clay_state);
     
-    image_syntax = load_image(0, "../resources/declarative.png");
-    image_syntax = load_image(1, "../resources/declarative.png");
-    image_debug0 = load_image(2, "../resources/debugger.png");
-    image_check1 = load_image(3, "../resources/check_1.png");
-    image_check2 = load_image(4, "../resources/check_2.png");
-    image_check3 = load_image(5, "../resources/check_3.png");
-    image_check4 = load_image(6, "../resources/check_4.png");
-    image_check5 = load_image(7, "../resources/check_5.png");
+    for type_info(type_of(state.images)).members {
+        assert(it.type == type_info(State.Image));
+        image := ((cast(*State.Image)*state.images) + it_index);
+        ok := Simp.texture_load_from_file(*image.data, image.path);
+        assert(ok);
+    }
+    
+    // id: u16;
+    // image_syntax = load_image(id, "../resources/declarative.png"); id += 1;
+    // image_debug0 = load_image(id, "../resources/debugger.png");    id += 1;
+    // image_check1 = load_image(id, "../resources/check_1.png");     id += 1;
+    // image_check2 = load_image(id, "../resources/check_2.png");     id += 1;
+    // image_check3 = load_image(id, "../resources/check_3.png");     id += 1;
+    // image_check4 = load_image(id, "../resources/check_4.png");     id += 1;
+    // image_check5 = load_image(id, "../resources/check_5.png");     id += 1;
     
     quit := false;
-    want_screenshot := false;
     while !quit {
         reset_temporary_storage();
         Input.update_window_events();
@@ -142,10 +146,7 @@ main :: () {
         }
         
         mouse_wheel_delta.y *= 0.9;
-        delta_time = 1.0/60.0;//Raylib.GetFrameTime();
-        // window_width, window_height = xx Simp.get_render_dimensions(my_window);
-        
-        array_reset_keeping_memory(*scissors);
+        array_reset_keeping_memory(*simp_scissors);
         
         layout_library.layout_update(*state);
         new_library := load_library(layout_library);
@@ -166,7 +167,6 @@ String          :: #import "String";
 System          :: #import "System";
 Window_Creation :: #import "Window_Creation";
 Windows         :: #import "Windows";
-// Raylib          :: #import "raylib-jai";
 Simp            :: #import "Simp";
 Input           :: #import "Input";
 File_Utilities  :: #import "File_Utilities";
@@ -195,23 +195,13 @@ unload_dynamic_library :: inline (library_handle: *void) {
 
 
 
-// TODO: Simp Renderer so we don't rely on some random raylib module for this example
-// Simp_Font :: struct { fontId: u32; font: Simp.Dynamic_Font; }
-
-// Font_Description :: struct {
-//     path: string;
-//     size: u16;
-// }
-
-simp_fonts: Hash_Table.Table(u32, *Simp.Dynamic_Font);
-
-simp_images : [10]Simp.Texture;
-scissors: [..]struct { start, end: Math.Vector2; };
+simp_fonts    : Hash_Table.Table(u32, *Simp.Dynamic_Font);
+simp_images   : [10]Simp.Texture;
+simp_scissors : [..]struct { start, end: Math.Vector2; };
 
 get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
     using Hash_Table;
     A :: struct { a, b: u16; }
-    
     foo := A.{id, size};
     table_id := (cast(*u32) *foo).*;
     
@@ -246,17 +236,15 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
 
     text_height := cast(float)config.fontSize;
     font_to_use := get_font(config.fontId, config.fontSize);
-    // font_to_use := simp_fonts[config.fontId];
-
+    
+    // TODO: i think i have to iterate unicode code points here....
     for i: 0..text.length-1 {
         if (text.chars[i] == #char "\n") {
             max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
             line_text_width = 0;
             continue;
         }
-        // index := cast(s32)text.chars[i] - 32;
         glyph := Simp.find_or_create_glyph(font_to_use, text.chars[i]);
-        // glyph
         if (glyph.advance != 0) {
             line_text_width += cast(float)glyph.advance;
         } else {
@@ -305,14 +293,14 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             );
         }
         case .SCISSOR_START; {
-            scissor := type_of(scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.height} };
-            array_add(*scissors, scissor);
+            scissor := type_of(simp_scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.height} };
+            array_add(*simp_scissors, scissor);
             Simp.set_scissor(scissor.start, scissor.end);
         }
         case .SCISSOR_END; {
-            pop(*scissors);
-            if scissors 
-            then Simp.set_scissor(scissors[scissors.count-1].start, scissors[scissors.count-1].end);
+            pop(*simp_scissors);
+            if simp_scissors 
+            then Simp.set_scissor(simp_scissors[simp_scissors.count-1].start, simp_scissors[simp_scissors.count-1].end);
             else Simp.set_scissor(0, 0, xx state.window_width, xx state.window_height);
         }
         case .RECTANGLE; {
@@ -333,7 +321,6 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
                     bound.y + bound.height,
                     to_math_color(config.color)
                 );
-                // R.DrawRectangle(xx boundingBox.x, xx boundingBox.y, xx boundingBox.width, xx boundingBox.height, to_raylib_color(config.color));
             }
         }
         case .BORDER; {
@@ -349,5 +336,4 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
     
     Simp.immediate_flush();
     Simp.swap_buffers(my_window);
-    // assert(false);
 }

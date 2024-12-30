@@ -16,19 +16,41 @@ State :: struct {
     mouse_wheel_delta : Math.Vector2;
     is_d_key_pressed  : bool;
     left_mouse_down   : bool;
-    delta_time        : float;
     
-    image_syntax: *void;
-    image_debug0: *void;
-    image_check1: *void;
-    image_check2: *void;
-    image_check3: *void;
-    image_check4: *void;
-    image_check5: *void;
+    Image :: struct {
+        path: string;
+        data: Simp.Texture;
+    }
+    
+    images: struct {
+        syntax := Image.{path="../resources/declarative.png"};
+        debug0 := Image.{path="../resources/debugger.png"};
+        check1 := Image.{path="../resources/check_1.png"};
+        check2 := Image.{path="../resources/check_2.png"};
+        check3 := Image.{path="../resources/check_3.png"};
+        check4 := Image.{path="../resources/check_4.png"};
+        check5 := Image.{path="../resources/check_5.png"};
+    };
     
     // measure_text: (text: *void, config: *void) -> Clay.Dimensions #c_call;
     measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
     render: (commands: *Clay.RenderCommandArray);
+}
+
+FONT_PATHS :: string.[
+    "../resources/Calistoga-Regular.ttf",  // FONT_TITLE_PATH
+    "../resources/Quicksand-Semibold.ttf", // FONT_BODY_PATH
+    "../resources/RobotoMono-Medium.ttf",  // FONT_MONOSPACE_PATH
+];
+
+FONT_TITLE     : u16 : 0;
+FONT_BODY      : u16 : 1;
+FONT_MONOSPACE : u16 : 2;
+
+Layout_Library_Procedures :: struct {
+    layout_get_clay_state : () -> Clay_State;
+    layout_init           : (*State, *Clay_State) -> ();
+    layout_update         : (*State) -> ();
 }
 
 Clay_State :: struct {
@@ -90,42 +112,6 @@ Clay_State :: struct {
     QueryScrollOffset: (elementId: u32) -> Clay.Vector2 #c_call;
 }
 
-// Clay._pointerInfo
-// Clay._layoutDimensions
-// Clay._dynamicElementIndexBaseHash
-// Clay._dynamicElementIndex
-// Clay._debugModeEnabled
-// Clay._disableCulling
-// Clay._externalScrollHandlingEnabled
-// Clay._debugSelectedElementId
-// Clay._debugViewWidth
-// Clay._debugViewHighlightColor
-// Clay._debugMaxElementsLatch
-// Clay._generation
-// Clay._arenaResetOffset
-// Clay._internalArena
-
-
-FONT_PATHS :: string.[
-    "../resources/Calistoga-Regular.ttf",  // FONT_TITLE_PATH
-    "../resources/Quicksand-Semibold.ttf", // FONT_BODY_PATH
-    "../resources/RobotoMono-Medium.ttf",  // FONT_MONOSPACE_PATH
-];
-
-FONT_TITLE     : u16 : 0;
-FONT_BODY      : u16 : 1;
-FONT_MONOSPACE : u16 : 2;
-
-Layout_Library_Procedures :: struct {
-    layout_get_clay_state : () -> Clay_State;
-    layout_init           : (*State, *Clay_State) -> ();
-    layout_update         : (*State) -> ();
-}
-
-// layout_get_clay_state_proc_type :: #type () -> Clay_State;
-// layout_init_proc_type           :: #type (*State, *Clay_State) -> ();
-// layout_update_proc_type         :: #type (*State) -> ();
-
 logx :: ($code: Code, $show_lhs := true, $show_type := true , loc := #caller_location) #expand {
     result   := #insert code;
     filename := String.path_filename(loc.fully_pathed_filename);
@@ -142,7 +128,7 @@ logx :: ($code: Code, $show_lhs := true, $show_type := true , loc := #caller_loc
         then Basic.log("%: % = %", REPR, type_of(result), result);
         else Basic.log("% := %", REPR, result);
     } else {
-        #if  show_loc
+        #if  show_type
         then Basic.log("% (%)", result, type_of(result));
         else Basic.log("%", result);
     }

@@ -47,12 +47,12 @@ landing_page_desktop :: () {
             );
                 
                 index : u32 = 0;
-                landing_page_blob :: (color: Color, text: string, imageData: *void) #expand {
+                landing_page_blob :: (color: Color, text: string, imageData: *Simp.Texture) #expand {
                     Element(ID("HeroBlob", index),
                         Layout(.{
-                            sizing = .{ width = SizingGrow(.{ max = 480 }) },
-                            padding = .{16, 16},
-                            childGap = 16,
+                            sizing         = .{width = SizingGrow(.{ max = 480 })},
+                            padding        = .{16, 16},
+                            childGap       = 16,
                             childAlignment = .{y = .CENTER} }
                         ),
                         BorderOutsideRadius(2, color, 10)
@@ -72,14 +72,13 @@ landing_page_desktop :: () {
                     index += 1;
                 }
                 
-                landing_page_blob(COLOR_BLOB_BORDER_5, "High performance", image_check5);
-                landing_page_blob(COLOR_BLOB_BORDER_4, "Flexbox-style responsive layout", image_check4);
-                landing_page_blob(COLOR_BLOB_BORDER_3, "Declarative syntax", image_check3);
-                landing_page_blob(COLOR_BLOB_BORDER_2, "Single .h file for C/C++", image_check2);
-                landing_page_blob(COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", image_check1);
-                
-                // landing_page_blob(COLOR_BLOB_BORDER_1, "Very nice Jai bindings", image_check1);
-                // landing_page_blob(COLOR_BLOB_BORDER_1, "Live Editing!!! :)", image_check1);
+                landing_page_blob(COLOR_BLOB_BORDER_5, "High performance", *images.check5.data);
+                landing_page_blob(COLOR_BLOB_BORDER_4, "Flexbox-style responsive layout", *images.check4.data);
+                landing_page_blob(COLOR_BLOB_BORDER_3, "Declarative syntax", *images.check3.data);
+                landing_page_blob(COLOR_BLOB_BORDER_2, "Single .h file for C/C++", *images.check2.data);
+                landing_page_blob(COLOR_BLOB_BORDER_1, "Compile to 15kb .wasm", *images.check1.data);
+                landing_page_blob(COLOR_BLOB_BORDER_1, "Very nice Jai bindings", *images.check1.data);
+                landing_page_blob(COLOR_BLOB_BORDER_1, "Live Editing!!! :)", *images.check1.data);
             }
         }
     }
@@ -109,17 +108,19 @@ feature_blocks_desktop :: () {
                     Layout(.{ padding = .{8, 4}, layoutDirection = .TOP_TO_BOTTOM, }),
                     Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)})
                 );
-                    config := StoreTextElementConfig(.{ fontSize = 24, fontId = FONT_BODY, textColor = COLOR_LIGHT });
+                    config := StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_LIGHT });
                     Text("#define CLAY_IMPLEMENTATION", config);
                     Text("#include clay.h", config);
                 }
                 Text("~2000 lines of C99.", text_config);
                 Text("Zero dependencies, including no C standard library.", text_config);
             }
+            
             { Element(ID("BringYourOwnRendererOuter"), Layout(layout_config));
                 Text("Renderer agnostic.", StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = 24, textColor = COLOR_ORANGE }));
                 Text("Layout with clay, then render with Raylib, WebGL Canvas or even as HTML.", text_config);
                 Text("Flexible output for easy compositing in your custom engine or environment.", text_config);
+                Text("It even supports Simp!.", text_config);
             }
         }
     }
@@ -167,7 +168,7 @@ declarative_syntax_page_desktop :: () {
             );
                 { Element(ID("SyntaxPageRightImageInner"),
                     Layout(.{ sizing = .{ width = SizingGrow(.{ max = 568 }) } }),
-                    Image(.{ sourceDimensions = .{1136, 1194}, imageData = image_syntax })
+                    Image(.{ sourceDimensions = .{1136, 1194}, imageData = *images.syntax.data })
                 ); }
             }
         }
@@ -418,7 +419,7 @@ debugger_page_desktop :: () {
     );
         Element(ID("DebuggerPageRightImageInner"),
             Layout(.{ sizing = .{ width = SizingGrow(.{ max = 558 }) } }),
-            Image(.{ sourceDimensions = .{1620, 1474}, imageData = image_debug0 })
+            Image(.{ sourceDimensions = .{1620, 1474}, imageData = *images.debug0.data })
         );
     }
 }
