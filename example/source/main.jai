@@ -210,7 +210,7 @@ get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
     return font;
 }
 
-main_thread_context: *Context;
+main_thread_context: *#Context;
 simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call {
     push_context,defer_pop main_thread_context;
     
