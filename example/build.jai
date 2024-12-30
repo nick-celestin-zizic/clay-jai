@@ -7,6 +7,7 @@ build_layout_library :: () -> Workspace {
     output_type            = .DYNAMIC_LIBRARY;
     dead_code_elimination  = .NONE;
     // emit_debug_info        = .NONE;
+    text_output_flags = 0;
     temporary_storage_size = 1000*1024;
     
     // set_optimization(*options, .VERY_OPTIMIZED);
@@ -26,6 +27,7 @@ build_runner :: () -> Workspace {
     output_path            = "output";
     output_type            = .EXECUTABLE;
     dead_code_elimination  = .NONE;
+    text_output_flags = 0;
     // emit_debug_info        = .NONE;
     temporary_storage_size = 1000*1024;
     
