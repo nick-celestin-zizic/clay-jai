@@ -2,20 +2,15 @@ build_layout_library :: () -> Workspace {
     w := compiler_create_workspace("Layout Library");
     using options := get_build_options(w);
     
-    output_executable_name = "layout-new";
-    output_path            = "output";
     output_type            = .DYNAMIC_LIBRARY;
-    dead_code_elimination  = .NONE;
-    // emit_debug_info        = .NONE;
-    text_output_flags = 0;
-    temporary_storage_size = 1000*1024;
+    output_path            = "output";
+    output_executable_name = "layout-new";
     
-    // set_optimization(*options, .VERY_OPTIMIZED);
+    set_development_options(*options);
     set_build_options(options, w);
     
     start_workspace(w, "Check");
     add_build_file("source/layout/layout.jai", w);
-    
     return w;
 }
 
@@ -23,27 +18,37 @@ build_runner :: () -> Workspace {
     w := compiler_create_workspace("Clay Test");
     using options := get_build_options(w);
     
-    output_executable_name = "jai-test";
-    output_path            = "output";
     output_type            = .EXECUTABLE;
-    dead_code_elimination  = .NONE;
-    text_output_flags = 0;
-    // emit_debug_info        = .NONE;
-    temporary_storage_size = 1000*1024;
+    output_path            = "output";
+    output_executable_name = "jai-test";
     
-    // set_optimization(*options, .VERY_OPTIMIZED);
+    set_development_options(*options);
     set_build_options(options, w);
 
     start_workspace(w, "Check");
     add_build_file("source/main.jai", w);
-    
     return w;
 }
 
+set_development_options :: (using options: *Build_Options) {
+    dead_code_elimination  = .NONE;
+    backend                = .X64;
+    text_output_flags      = 0;
+    temporary_storage_size = 1000*1024;
+    set_optimization(options, .VERY_DEBUG);
+}
+
 app: Process;
-app_running := false;
-app_start :: () { app_running = create_process(*app, "output/jai-test.exe"); }
-app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
+
+app_start :: () {
+    ok := create_process(*app, "output/jai-test.exe");
+    assert(ok);
+}
+
+app_running :: () -> bool {
+    ok, result := get_process_result(*app, 0);
+    return ok && result.type == .STILL_RUNNING;
+}
 
 #run {
     set_build_options_dc(.{do_output=false});
@@ -55,20 +60,18 @@ app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
     if   compile_workspaces(build_layout_library(), build_runner())
     then app_start();
     
-    
     watcher: File_Watcher(void);
     ok = init(*watcher,
         (watcher: *File_Watcher(void), using change: *File_Change, user_data: *void) {
             clear :: "\e[1;1H\e[2J";
             log("%0% was modified. Reloading...", clear, full_path);
             if contains(full_path, "/layout/") {
-                if compile_workspaces(build_layout_library()) && !app_running then app_start();
+                if !compile_workspaces(build_layout_library()) return;
             } else {
-                app_stop();
-                if   compile_workspaces(build_layout_library(), build_runner())
-                then app_start();
+                kill_process(*app);
+                if !compile_workspaces(build_layout_library(), build_runner()) return;
             }
-            
+            if !app_running() then app_start();
         },
         null, events_to_watch = .ALL_EVENTS, verbose = true
     );                                        assert(ok);
@@ -93,7 +96,7 @@ app_stop  :: () { if app_running { kill_process(*app); app_running = false; } }
 #import "File";
 
 // This is a little snippet i like to use when writting smallish metaprograms.
-// It just does all of the boilerplate for initializing plugins and stuff
+// It just does all of the boilerplate for initializing and passing messages to plugins
 
 plugins: [..]*Metaprogram_Plugin;
 
