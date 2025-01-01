@@ -18,14 +18,20 @@ COLOR_BLOB_BORDER_3 :: Clay.Color.{225, 138, 50, 255};
 COLOR_BLOB_BORDER_4 :: Clay.Color.{236, 159, 70, 255};
 COLOR_BLOB_BORDER_5 :: Clay.Color.{240, 189, 100, 255};
 
-HEADER_TEXT_CONFIG :: Clay.TextElementConfig.{
-    fontId    = FONT_BODY,
-    fontSize  = 24,
-    textColor = .{61, 26, 5, 255},
-};
+
+// They're calling it wuhumu oriented programming!
+// wu (width   units) is one percent of the width
+// hu (height  units) is one percent of the height
+// mu (minimum units) is wu or hu depending on which one is smaller
+// use these instead of absolute screen units
+k  :: 0.01;
+wu :: inline (value: $T) -> T { return cast(T) (value * window_width  * k); }
+hu :: inline (value: $T) -> T { return cast(T) (value * window_height * k); }
+mu :: inline (value: $T) -> T { return Basic.min(wu(value), hu(value)); }
 
 create_layout :: () {
     using Clay;
+    
     mobile_screen := window_width < window_height;
     
     { Element(ID("OuterContainer"), Layout(.{
@@ -35,35 +41,42 @@ create_layout :: () {
         
         { Element(ID("Header"),
             Layout(.{
-                sizing = .{ SizingGrow(), SizingFixed(50) },
+                sizing = .{ SizingGrow(), SizingFixed(xx hu(4)) },
                 childAlignment = .{ y = .CENTER },
-                childGap = 16,
-                padding = .{ 32, 0 }
+                childGap = xx wu(1.1),
+                padding = .{ xx wu(2.2), 0 }
             })
         );
-            Text("Clay", *HEADER_TEXT_CONFIG); 
+            header_text_config := StoreTextElementConfig(.{
+                fontId    = FONT_BODY,
+                fontSize  = xx hu(2),
+                textColor = .{61, 26, 5, 255},
+            });
+            
+            Text("Clay", header_text_config); 
     
             { Element(ID("Spacer"), Layout(.{ sizing = .{ width = SizingGrow() } }) ); }
             
-            if (!mobile_screen) {
+            header_button_pad := cast(u16) wu(.8);
+            if !mobile_screen {
                 { Element(ID("LinkExamplesOuter"),
-                    Layout(.{ padding = .{ 8, 0 } }),
+                    Layout(.{ padding = .{ header_button_pad, 0 } }),
                     Rectangle(.{/*link = ("https://github.com/nicbarker/clay/tree/main/examples"),*/ color = .{} })
                 );
-                    Text("Examples", *HEADER_TEXT_CONFIG);
+                    Text("Examples", header_text_config);
                 }
     
                 { Element(ID("LinkDocsOuter"),
-                    Layout(.{ padding = .{ 8, 0 } }),
+                    Layout(.{ padding = .{ header_button_pad, 0 } }),
                     Rectangle(.{/*link = ("https://github.com/nicbarker/clay/blob/main/README.md"),*/ color = .{} }) 
                 );
-                    Text("Docs", *HEADER_TEXT_CONFIG);
+                    Text("Docs", header_text_config);
                 }
             }
             
             discord_link_id := ID("DiscordLink");
             { Element(discord_link_id,
-                Layout(.{ padding = .{16, 6} }),
+                Layout(.{ padding = .{ header_button_pad, 0 } }),
                 Rectangle(.{
                     cornerRadius = CornerRadiusAll(10),
                     // link = ("https://discord.gg/b4FTWkxdvT"),
@@ -71,12 +84,12 @@ create_layout :: () {
                 }),
                 BorderOutsideRadius(2, COLOR_RED, 10)
             );
-                Text("Discord", *HEADER_TEXT_CONFIG);
+                Text("Discord", header_text_config);
             }
             
             github_link_id := ID("GithubLink");
             { Element(github_link_id,
-                Layout(.{ padding = .{16, 6} }),
+                Layout(.{ padding = .{header_button_pad, 0 } }),
                 Rectangle(.{
                     cornerRadius = CornerRadiusAll(10),
                     // link = ("https://github.com/nicbarker/clay"),
@@ -84,12 +97,12 @@ create_layout :: () {
                 }),
                 BorderOutsideRadius(2, COLOR_RED, 10)
             );
-                Text("Github", *HEADER_TEXT_CONFIG);
+                Text("Github", header_text_config);
             }
         }
         
         stripe :: inline (name: string, color: Color) {
-            Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(4) }}), Rectangle(.{ color = color }));
+            Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.6)) }}), Rectangle(.{ color = color }));
         }
         
         stripe("TopBorder1", COLOR_TOP_BORDER_5);
@@ -127,16 +140,19 @@ create_layout :: () {
 active_renderer_index : int = 0;
 
 #load "../common.jai";
-Basic :: #import "Basic";
-Math  :: #import "Math";
-Simp  :: #import "Simp";
-Clay  :: #import,file "../../../module.jai";
+Basic         :: #import "Basic";
+Math          :: #import "Math";
+Compiler      :: #import "Compiler";
+Program_Print :: #import "Program_Print";
+Remap_Context :: #import "Remap_Context"(VERBOSE=false);
+Clay          :: #import,file "../../../module.jai";
 
 
 using global_state: *State;
 
 #program_export "layout_update"
 layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *State) {
+    push_context,defer_pop Remap_Context.remap_context();
     using Clay;
     Basic.assert(xx state);
     global_state = state;
@@ -144,17 +160,14 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
     mouseWheelX := mouse_wheel_delta.x;
     mouseWheelY := mouse_wheel_delta.y;
     
-    if is_d_key_pressed {
-    // if (R.IsKeyPressed(.KEY_D)) {
-        debugEnabled = !debugEnabled;
-        SetDebugModeEnabled(debugEnabled);
-    }
+    SetDebugModeEnabled(show_debugger);
     
     // mouse_position := Math.Vector2.{R.GetMousePosition().x, R.GetMousePosition().y};
     // SetQueryScrollOffsetFunction((id: u32) -> Vector2 #c_call {
     //     using global_state;
     //     return cast,force(Clay.Vector2) (mouse_wheel_delta);
     // });
+    // logx(window_width);
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });
     if (!left_mouse_down) {
@@ -184,8 +197,10 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
     
     delta_time :: 1.0/60.0;
     animation_counter += delta_time;
-
-    UpdateScrollContainers(true, .{mouseWheelX, mouseWheelY}, delta_time);
+    
+    mouse_wheel_speed :: 5.0;
+    using,except(Vector2) Math;
+    UpdateScrollContainers(true, cast,force(Clay.Vector2)(mouse_wheel_delta*mouse_wheel_speed), delta_time);
     BeginLayout();
     create_layout();
     render_commands := EndLayout();
@@ -197,6 +212,7 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
 
 #program_export "layout_init"
 layout_init : type_of(Layout_Library_Procedures.layout_init) : (using state: *State, clay_state: *Clay_State) {
+    push_context,defer_pop Remap_Context.remap_context();
     if clay_state {
         Clay.Clay__pointerInfo = clay_state.pointerInfo;
         Clay.Clay__layoutDimensions = clay_state.layoutDimensions;
@@ -269,6 +285,7 @@ layout_init : type_of(Layout_Library_Procedures.layout_init) : (using state: *St
 
 #program_export "layout_get_clay_state"
 layout_get_clay_state : type_of(Layout_Library_Procedures.layout_get_clay_state) : () -> Clay_State {
+    push_context,defer_pop Remap_Context.remap_context();
     clay_state: Clay_State = ---;
     clay_state.pointerInfo = Clay.Clay__pointerInfo;
     clay_state.layoutDimensions = Clay.Clay__layoutDimensions;

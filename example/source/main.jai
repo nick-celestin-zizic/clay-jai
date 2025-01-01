@@ -85,12 +85,16 @@ main :: () {
     
     layout_library := load_library(.{});
     
+    
+    textures: [#run type_info(type_of(state.images)).members.count]Simp.Texture;
     for type_info(type_of(state.images)).members {
-        assert(it.type == type_info(Simp.Texture));
+        assert(it.type == type_info(*void));
         assert(it.notes.count == 1);
-        texture := ((cast(*Simp.Texture)*state.images) + it_index);
-        ok := Simp.texture_load_from_file(texture, it.notes[0]);
+        
+        ok := Simp.texture_load_from_file(*textures[it_index], it.notes[0]);
         assert(ok);
+        // cast(cast(*state.images, *u8) + it.offset_in_bytes, **void).* = *textures[it_index]
+        (cast(**void) ((cast(*u8)*state.images) + it.offset_in_bytes)).* = *textures[it_index];
     }
     
     quit := false;
@@ -106,8 +110,6 @@ main :: () {
 
                 window_width  = xx it.width;
                 window_height = xx it.height;
-
-                // if should_reinit my_init_fonts();  // Resize the font for the new window size.
             }
         }
 
@@ -123,8 +125,9 @@ main :: () {
                 if it.key_code == .MOUSE_BUTTON_LEFT
                 then left_mouse_down = xx it.key_pressed;
                 
-                if it.key_code == #char "D"
-                then is_d_key_pressed = xx it.key_pressed;
+                if it.key_code == #char "D" {
+                    if it.key_pressed then show_debugger = !show_debugger;
+                }
             }
             case .MOUSE_WHEEL; mouse_wheel_delta.y = xx it.wheel_delta / cast(float) it.typical_wheel_delta;
             }
@@ -186,24 +189,25 @@ unload_dynamic_library :: inline (library_handle: *void) {
 
 
 simp_fonts    : Hash_Table.Table(u32, *Simp.Dynamic_Font);
-simp_images   : [10]Simp.Texture;
 simp_scissors : [..]struct { start, end: Math.Vector2; };
 
-get_font :: (id: u16, size: u16) -> *Simp.Dynamic_Font {
+get_font :: (id: u16, _size: u16) -> *Simp.Dynamic_Font {
     using Hash_Table;
+    size := Basic.max(_size, 1);
+    
     A :: struct { a, b: u16; }
     foo := A.{id, size};
-    table_id := (cast(*u32) *foo).*;
-    
+    table_id := cast(*u32, *foo).*;
     font, found := table_find(*simp_fonts, table_id);
     if found return font;
     
-    path := ((cast(*string) type_info(State.Font_Paths).constant_storage.data) + id).*;
-    // path := ((cast(*State.Font)state.fonts) + id).path;
+    // COMPILER_BUG: both of these should evaluate to the same thing but the first one crashes in the .X64 backend!
+    // path := ((cast(*string)type_info(State.Font_Paths).constant_storage.data) + id).*;
+    path := cast(*string, type_info(State.Font_Paths).constant_storage.data + (id*size_of(string))).*;
     font_data, ok := File.read_entire_file(path,, temp);
     assert(ok);
     
-    font = Simp.get_font_at_size(cast([]u8)font_data, size);
+    font = Simp.get_font_at_size(cast([]u8, font_data), size);
     assert(xx font);
     
     table_add(*simp_fonts, table_id, font);

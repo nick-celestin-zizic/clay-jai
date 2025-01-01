@@ -7,24 +7,23 @@ Scrollbar_Data :: struct {
 State :: struct {
     scrollbar_data    := Scrollbar_Data.{};
     animation_counter := 0.0;
-    debugEnabled      := false;
+    show_debugger     := false;
     
     window_width  := 1024 * 1.0;
     window_height := 768 * 1.0;
     
     mouse_position    : Math.Vector2;
     mouse_wheel_delta : Math.Vector2;
-    is_d_key_pressed  : bool;
     left_mouse_down   : bool;
     
     images: struct {
-        syntax: Simp.Texture; @"../resources/declarative.png"
-        debug0: Simp.Texture; @"../resources/debugger.png"
-        check1: Simp.Texture; @"../resources/check_1.png"
-        check2: Simp.Texture; @"../resources/check_2.png"
-        check3: Simp.Texture; @"../resources/check_3.png"
-        check4: Simp.Texture; @"../resources/check_4.png"
-        check5: Simp.Texture; @"../resources/check_5.png"
+        syntax: *void; @"../resources/declarative.png"
+        debug0: *void; @"../resources/debugger.png"
+        check1: *void; @"../resources/check_1.png"
+        check2: *void; @"../resources/check_2.png"
+        check3: *void; @"../resources/check_3.png"
+        check4: *void; @"../resources/check_4.png"
+        check5: *void; @"../resources/check_5.png"
     };
     
     Font_Paths :: struct {
