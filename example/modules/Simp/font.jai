@@ -888,7 +888,11 @@ find_or_create_glyph :: (using font: *Dynamic_Font,
 
         if glyph_index {
             error := FT_Load_Glyph(face, glyph_index, FT_LOAD_RENDER);
-            assert(!error);
+            if error {
+                log_error("Unable to load a glyph in font '%' for utf32 character %.\n", font.name, utf32);
+                glyph_index = glyph_index_for_unknown_character;
+            }
+            // assert(!error);
         }
     } else {
         assert(glyph_index >= 0);
