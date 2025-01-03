@@ -27,7 +27,9 @@ COLOR_BLOB_BORDER_5 :: Clay.Color.{240, 189, 100, 255};
 k  :: 0.01;
 wu :: inline (value: $T) -> T { return cast(T) (value * window_width  * k); }
 hu :: inline (value: $T) -> T { return cast(T) (value * window_height * k); }
-mu :: inline (value: $T) -> T { return Basic.min(wu(value), hu(value)); }
+mu :: inline (value: $T) -> T { return xx ((cast(float) Basic.min(window_width, window_height)) * k * value); }
+// wu :: inline (value: $T) -> T { return mu(value); }
+// hu :: inline (value: $T) -> T { return mu(value); }
 
 create_layout :: () {
     using Clay;
@@ -147,15 +149,14 @@ Program_Print :: #import "Program_Print";
 Remap_Context :: #import "Remap_Context"(VERBOSE=false);
 Clay          :: #import,file "../../../module.jai";
 
-
-using global_state: *State;
+using shared_state: *State;
 
 #program_export "layout_update"
-layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *State) {
+layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *State) -> Clay.RenderCommandArray {
     push_context,defer_pop Remap_Context.remap_context();
     using Clay;
     Basic.assert(xx state);
-    global_state = state;
+    shared_state = state;
     
     mouseWheelX := mouse_wheel_delta.x;
     mouseWheelY := mouse_wheel_delta.y;
@@ -164,10 +165,9 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
     
     // mouse_position := Math.Vector2.{R.GetMousePosition().x, R.GetMousePosition().y};
     // SetQueryScrollOffsetFunction((id: u32) -> Vector2 #c_call {
-    //     using global_state;
+    //     using shared_state;
     //     return cast,force(Clay.Vector2) (mouse_wheel_delta);
     // });
-    // logx(window_width);
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });
     if (!left_mouse_down) {
@@ -203,8 +203,7 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
     UpdateScrollContainers(true, cast,force(Clay.Vector2)(mouse_wheel_delta*mouse_wheel_speed), delta_time);
     BeginLayout();
     create_layout();
-    render_commands := EndLayout();
-    render(*render_commands);
+    return EndLayout();
 }
 
 // this stuff is pretty ugly, would be nice if all of Clay's globals where in a single struct, but we have to 

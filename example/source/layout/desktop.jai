@@ -98,7 +98,7 @@ feature_blocks_desktop :: () {
     );
     
     pad := Padding.{xx wu(2.2), xx hu(2.2)};
-    text_config := StoreTextElementConfig(.{ fontSize = xx hu(2.1), fontId = FONT_BODY, textColor = COLOR_RED });
+    text_config := StoreTextElementConfig(.{ fontSize = xx hu(2.5), fontId = FONT_BODY, textColor = COLOR_RED });
     layout_config := LayoutConfig.{
         layoutDirection = .TOP_TO_BOTTOM,
         sizing = .{ width = SizingPercent(0.5) },
@@ -130,7 +130,7 @@ feature_blocks_desktop :: () {
 
 declarative_syntax_page_desktop :: () {
     using Clay;
-    page_pad := cast(u16) hu(5.5);
+    page_pad := cast(u16) mu(5.5);
     Element(ID("SyntaxPageDesktop"),
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = window_height -  page_pad}) },
@@ -160,7 +160,7 @@ declarative_syntax_page_desktop :: () {
         Text("Declarative Syntax", StoreTextElementConfig(.{ fontSize = xx hu(4.0), fontId = FONT_TITLE, textColor = COLOR_RED }));
         { Element(ID("SyntaxSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = xx wu(2.5) }) } })); }
         
-        config := StoreTextElementConfig(.{ fontSize = xx hu(2.3), fontId = FONT_BODY, textColor = COLOR_RED });
+        config := StoreTextElementConfig(.{ fontSize = xx hu(2.5), fontId = FONT_BODY, textColor = COLOR_RED });
         Text("Flexible and readable declarative syntax with nested UI element hierarchies.", config);
         Text("Mix elements with standard C code like loops, conditionals and functions.", config);
         Text("Create your own library of re-usable components from UI primitives like text, images and rectangles.", config);
@@ -173,15 +173,14 @@ declarative_syntax_page_desktop :: () {
         }),
     );
         Element(ID("SyntaxPageRightImageInner"),
-            Layout(.{ sizing = .{ width = SizingGrow(.{ max = xx wu(45) }) } }),
+            Layout(.{ sizing = .{ SizingGrow(), SizingGrow() } }),
             Image(.{ sourceDimensions = .{1136, 1194}, imageData = images.syntax })
         );
     }
     
 }
 
-LOREM_IPSUM_TEXT   :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
-LOREM_IPSUM_CONFIG :: Clay.TextElementConfig.{ fontSize = 24, fontId = FONT_TITLE, textColor = COLOR_LIGHT };
+LOREM_IPSUM_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
 high_performance_page_desktop :: () {
     using Clay;
@@ -210,7 +209,7 @@ high_performance_page_desktop :: () {
         
         { Element(ID("PerformanceSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) }})); }
         
-        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_LIGHT });
+        config := StoreTextElementConfig(.{ fontSize = xx hu(1.8), fontId = FONT_BODY, textColor = COLOR_LIGHT });
         Text("Fast enough to recompute your entire UI every frame.", config);
         Text("Small memory footprint (3.5mb default) with static allocation & reuse. No malloc / free.", config);
         Text("Simplify animations and reactive UI design by avoiding the standard performance hacks.", config);
@@ -226,12 +225,14 @@ high_performance_page_desktop :: () {
         
         { Element(ID("AnimationDemoContainer"),
             Layout(.{
-                sizing = .{ SizingGrow(), SizingFixed(400) } }
+                sizing = .{ SizingGrow(), SizingFixed(xx hu(30)) } }
             ),
             BorderAll(.{ width = 2, color = COLOR_LIGHT })
         );
-            pad   :: Padding.{32, 32};
+            pad   := Padding.{xx mu(2.2), xx mu(2.2)};
             align :: ChildAlignment.{y = .CENTER};
+            
+            lorem_ipsum_config := StoreTextElementConfig(.{ fontSize = xx hu(1.6), fontId = FONT_TITLE, textColor = COLOR_LIGHT });
             
             { Element(ID("AnimationDemoContainerLeft"),
                 Layout(.{
@@ -245,7 +246,7 @@ high_performance_page_desktop :: () {
                     )
                 }),
             );
-                Text(LOREM_IPSUM_TEXT, *LOREM_IPSUM_CONFIG);
+                Text(LOREM_IPSUM_TEXT, lorem_ipsum_config);
             }
             
             { Element(ID("AnimationDemoContainerRight"),
@@ -260,7 +261,7 @@ high_performance_page_desktop :: () {
                     )
                 }),
             );
-                Text(LOREM_IPSUM_TEXT, *LOREM_IPSUM_CONFIG);
+                Text(LOREM_IPSUM_TEXT, lorem_ipsum_config);
             }
         }
     }
@@ -293,7 +294,7 @@ renderer_page_desktop :: () {
         })
     );
         Text("Renderer & Platform Agnostic", StoreTextElementConfig(.{
-            fontSize  = 52,
+            fontSize  = xx hu(4.5),
             fontId    = FONT_TITLE,
             textColor = COLOR_RED
         }));
@@ -301,7 +302,7 @@ renderer_page_desktop :: () {
         { Element(ID("RendererSpacerLeft"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) } }) );}
         
         config := StoreTextElementConfig(.{
-            fontSize  = 28,
+            fontSize  = xx hu(1.9),
             fontId    = FONT_BODY,
             textColor = COLOR_RED
         });
@@ -310,6 +311,7 @@ renderer_page_desktop :: () {
         Text("Write your own renderer in a few hundred lines of code, or use the provided examples for Raylib, WebGL canvas and more.", config);
         Text("There's even an HTML renderer - you're looking at it right now!", config);
     }
+    
     { Element(ID("RendererRightText"),
         Layout(.{
             sizing = .{ width = SizingPercent(0.45) },
@@ -332,7 +334,7 @@ renderer_page_desktop :: () {
             
             Text(text, StoreTextElementConfig(.{
                 /*.disablePointerEvents = true,*/
-                fontSize  = 28,
+                fontSize  = xx hu(1.9),
                 fontId    = FONT_BODY,
                 textColor = COLOR_LIGHT 
             }));
@@ -360,7 +362,7 @@ renderer_page_desktop :: () {
             
             Text(text, StoreTextElementConfig(.{
                 /*.disablePointerEvents = true,*/
-                fontSize = 28,
+                fontSize = xx hu(1.8),
                 fontId = FONT_BODY,
                 textColor = COLOR_RED
             }));
@@ -396,14 +398,14 @@ debugger_page_desktop :: () {
         })
     );
         Text("Integrated Debug Tools", StoreTextElementConfig(.{
-            fontSize  = 52,
+            fontSize  = xx hu(4.5),
             fontId    = FONT_TITLE,
             textColor = COLOR_LIGHT
         }));
         
         { Element(ID("DebuggerSpacer"), Layout(.{ sizing = .{ width = SizingGrow(.{ max = 16 }) }})); }
         
-        config := StoreTextElementConfig(.{ fontSize = 28, fontId = FONT_BODY, textColor = COLOR_LIGHT });
+        config := StoreTextElementConfig(.{ fontSize = xx hu(1.8), fontId = FONT_BODY, textColor = COLOR_LIGHT });
         Text("Clay includes built in \"Chrome Inspector\"-style debug tooling.", config);
         Text("View your layout hierarchy and config in real time.", config);
         
