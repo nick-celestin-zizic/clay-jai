@@ -1,13 +1,15 @@
-Scrollbar_Data :: struct {
-    click_origin    : Math.Vector2;
-    position_origin : Math.Vector2;
-    mouse_down      : bool;
-}
-
 State :: struct {
-    scrollbar_data    := Scrollbar_Data.{};
+    scrollbar_data: struct {
+        click_origin    : Math.Vector2;
+        position_origin : Math.Vector2;
+        mouse_down      : bool;
+    };
+    
+    should_quit       := false;
     animation_counter := 0.0;
     show_debugger     := false;
+    
+    requested_next_runtime := false;
     
     window_width  := 1024 * 1.0;
     window_height := 768 * 1.0;
@@ -27,13 +29,12 @@ State :: struct {
     };
     
     Font_Paths :: struct {
-        FONT_TITLE :: "../resources/Calistoga-Regular.ttf";
         FONT_BODY  :: "../resources/Quicksand-Semibold.ttf";
+        FONT_TITLE :: "../resources/Calistoga-Regular.ttf";
         FONT_MONO  :: "../resources/RobotoMono-Medium.ttf";
     }
     
     measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
-    render: (commands: *Clay.RenderCommandArray);
 }
 
 // here we paste in all of the members of Font_Paths so that they are available as u16 constants!
@@ -49,7 +50,7 @@ State :: struct {
 Layout_Library_Procedures :: struct {
     layout_get_clay_state : () -> Clay_State;
     layout_init           : (*State, *Clay_State) -> ();
-    layout_update         : (*State) -> ();
+    layout_update         : (*State) -> Clay.RenderCommandArray;
 }
 
 Clay_State :: struct {
