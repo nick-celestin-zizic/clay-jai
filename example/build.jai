@@ -1,7 +1,13 @@
 #run {
     set_build_options_dc(.{do_output=false});
+    ok := true; // it's all going to be ok :)
     
-    ok := make_directory_if_it_does_not_exist("output");
+    ok = make_directory_if_it_does_not_exist("output");
+    assert(ok);
+    
+    // TODO: maybe just copy all of the dynamic libraries regardless
+    // of platform since this is a toy example that should just work
+    ok = copy_file(join(compiler_get_base_path(), "/modules/SDL/windows/SDL2.dll",, temp), "output/SDL2.dll");
     assert(ok);
     
     args := get_build_options().compile_time_command_line;
@@ -9,7 +15,6 @@
     if array_find(args, "html") then compile_to_single_html_page(); else {
         log_error("usage:\n  for hotreloading loop:\n    jai build.jai - loop\n  for compiling to an html file:\n    jai build.jai - html");
     }
-    
 }
 
 run_development_loop :: () {    

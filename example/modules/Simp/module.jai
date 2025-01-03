@@ -202,9 +202,9 @@ Window_Info :: struct {
     specific: Window_Info_Platform_Specific;
 }
 
-window_infos: [..] Window_Info;
 
 #scope_export
+window_infos: [..] Window_Info;
 set_scissor :: (x0: s32, y0: s32, x1: s32, y1: s32) {
     immediate_flush();
     glEnable(GL_SCISSOR_TEST);
