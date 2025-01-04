@@ -144,13 +144,16 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             config := command.config.rectangleElementConfig;
             Simp.set_shader_for_color(true);
             if (config.cornerRadius.topLeft > 0) {
-                // TODO: steal rounded rectangle stuff from GetRect
-                Simp.immediate_quad(
-                    bound.x, bound.y,
-                    bound.x + bound.width,
-                    bound.y + bound.height,
-                    to_math_color(config.color)
-                );
+                // TODO: this is a hack and assumes all four border regions are the same
+                // if the aren't we are going to have to do a lot more rendering stuff :(
+                pixels, actual_roundness := rounded_rectangle(bound, .{
+                    roundedness_type = .ABSOLUTE_FROM_THEME_FIELD,
+                    roundedness = config.cornerRadius.topLeft,
+                    // pixels_per_edge_segment = 1000.0,
+                    frame_thickness_type = .ABSOLUTE_FROM_THEME_FIELD,
+                    frame_thickness = 0,
+                    rounding_flags = .NORTHEAST | .NORTHWEST | .SOUTHWEST | .SOUTHEAST,
+                }, to_math_color(config.color), to_math_color(config.color));
             } else {
                 Simp.immediate_quad(
                     bound.x, bound.y,
@@ -161,6 +164,31 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             }
         }
         case .BORDER; {
+            config := command.config.borderElementConfig;
+            
+            // TODO: this is a hack and assumes all four border regions are the same
+            // if the aren't we are going to have to do a lot more rendering stuff :(
+            pixels, actual_roundness := rounded_rectangle(bound, .{
+                roundedness_type = .ABSOLUTE_FROM_THEME_FIELD,
+                roundedness = config.cornerRadius.topLeft,
+                // pixels_per_edge_segment = 1000.0,
+                frame_thickness_type = .ABSOLUTE_FROM_THEME_FIELD,
+                frame_thickness = xx config.left.width,
+                rounding_flags = .NORTHEAST | .NORTHWEST | .SOUTHWEST | .SOUTHEAST,
+            }, .{}, to_math_color(config.left.color));
+            // BorderData :: struct {
+            //     width: u32;
+            //     color: Color;
+            // }
+            
+            // BorderElementConfig :: struct {
+            //     left:            BorderData;
+            //     right:           BorderData;
+            //     top:             BorderData;
+            //     bottom:          BorderData;
+            //     betweenChildren: BorderData;
+            //     cornerRadius:    CornerRadius;
+            // }
             // TODO: steal rounded rectangle code from getrect
             // log("border");
         }
@@ -231,4 +259,317 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
     text_size.height = text_height;
 
     return text_size;
+}
+
+
+// this stuff is taken from GetRect
+
+global_rounding_radius_in_pixels := 9.0;
+global_frame_thickness_in_pixels := 4.0;
+global_divider_thickness_in_pixels := 4.0;
+global_initial_divider_position_in_pixels := 32.0;
+global_slider_nub_thickness_in_pixels := 32.0;
+
+
+Size_Computation :: enum u8 {   // Defaults to RELATIVE_TO_HEIGHT.
+    RELATIVE_TO_HEIGHT        :: 0;
+    RELATIVE_TO_WIDTH         :: 1;
+    ABSOLUTE_FROM_THEME_FIELD :: 2;
+    ABSOLUTE_FROM_GLOBAL      :: 3;
+};
+
+Rectangle_Shape :: struct {
+    roundedness_type: Size_Computation;
+    
+    roundedness := .18;   // If absolute, this is the number of pixels. If relative, set this to a value in [0, 1]: 0 == totally squared off; 1 == capsule along the width or height (though this will be clamped to the shortest side).
+    
+    pixels_per_edge_segment  := 10.0;  // How many triangles we generate for the curves, based on the length of the arc.
+
+    frame_thickness_type: Size_Computation;
+    frame_thickness := .02;            // By default, .02 * rect.h. Set to a value <= 0 for no frame.
+
+    Rounding_Flags :: enum_flags u32 {
+        NORTHEAST :: 0x1;
+        NORTHWEST :: 0x2;
+        SOUTHWEST :: 0x4;
+        SOUTHEAST :: 0x8;
+
+        // Combo flags, for convenience:
+        EAST  :: NORTHEAST | SOUTHEAST;
+        WEST  :: NORTHWEST | SOUTHWEST;
+        SOUTH :: SOUTHEAST | SOUTHWEST;
+        NORTH :: NORTHEAST | NORTHWEST;
+
+        ALL :: EAST | WEST;
+    }
+
+    rounding_flags := Rounding_Flags.NORTHEAST | .NORTHWEST | .SOUTHWEST | .SOUTHEAST;
+}
+
+to_vec3 :: (v2: Math.Vector2) -> Math.Vector3 {
+    result: Math.Vector3;
+    result.xy = v2;
+
+    return result;
+}
+
+get_quad :: (using r: Clay.BoundingBox, snap_coordinates := false) -> (p0: Math.Vector2, p1: Math.Vector2, p2: Math.Vector2, p3: Math.Vector2) {
+    using Math;
+    
+    p0 := xy(x      , y       );
+    p1 := xy(x+width, y       );
+    p2 := xy(x+width, y+height);
+    p3 := xy(x      , y+height);
+
+    if snap_coordinates {
+        p0.x = floor(p0.x + .5);
+        p0.y = floor(p0.y + .5);
+        p1.x = floor(p1.x + .5);
+        p1.y = floor(p1.y + .5);
+        p2.x = floor(p2.x + .5);
+        p2.y = floor(p2.y + .5);
+        p3.x = floor(p3.x + .5);
+        p3.y = floor(p3.y + .5);
+    }
+
+    return p0, p1, p2, p3;
+}
+
+get_roundedness_for_rect :: (r: Clay.BoundingBox, type: Size_Computation, roundedness: float, global_value: float, limit := 0.5) -> float {
+    using Math;
+    
+    radius_pixels := get_float_parameter(r, type, roundedness, global_value);
+
+    shortest := min(r.width, r.height);
+    Clamp(*radius_pixels, 0, shortest*limit);
+    radius_pixels = floor(radius_pixels + .5);
+
+    return radius_pixels;
+}
+
+get_float_parameter :: (r: Clay.BoundingBox, type: Size_Computation, local: float, global: float, override: float = Math.FLOAT32_INFINITY) -> float {
+    using Math;
+    
+    if override != FLOAT32_INFINITY {
+        local  = override;
+        global = override;
+    }
+
+    result: float;
+    if #complete type == {
+      case .RELATIVE_TO_HEIGHT;
+        result = r.height * local;
+      case .RELATIVE_TO_WIDTH;
+        result = r.width * local;
+      case .ABSOLUTE_FROM_THEME_FIELD;
+        result = local;
+      case; assert(false); #through;
+      case .ABSOLUTE_FROM_GLOBAL;
+        result = global;
+    }
+
+    return result;
+}
+
+rounded_rectangle :: (r: Clay.BoundingBox, shape: Rectangle_Shape, color: Math.Vector4, frame_color: Math.Vector4, frame_thickness_override := Math.FLOAT32_INFINITY /*, return_points := false*/) -> (frame_pixels: float, actual_roundedness: float/*, points: [] Rounded_Rectangle_Point*/) {
+/*
+    points: [..] Rounded_Rectangle_Point;  // We only fill this if return_points == true.
+    points.allocator = temp;
+*/
+    
+    using Math;
+    using Basic;
+    
+    radius_pixels := get_roundedness_for_rect(r, shape.roundedness_type, shape.roundedness, global_rounding_radius_in_pixels, .5);
+
+    Simp.set_shader_for_color(true);
+    frame_pixels := get_float_parameter(r, shape.frame_thickness_type, shape.frame_thickness, global_frame_thickness_in_pixels);
+    shortest := min(r.width, r.height);
+    Clamp(*frame_pixels, 0, shortest*.5);
+
+    if (frame_pixels > 0) && (frame_pixels < 1) frame_pixels = 1;  // Give them at least 1 pixel if they are asking for a frame...
+    frame_pixels = floor(frame_pixels + .5);
+
+    if !frame_color.w  frame_pixels = 0;  // Kill drawing of the frame.
+    if (color.w == 0) && (frame_pixels == 0) return 0, 0;  // Early out and do not draw!
+
+    flags := shape.rounding_flags;
+    if radius_pixels == 0 {
+        flags = 0;  // Just don't do corners, but, go do the rest of the code, because we want to draw frames etc and don't want to dupe that code here.
+    }
+
+    extra_w := radius_pixels;
+    extra_h := radius_pixels;
+
+    // i0..i3: inside  vertices, of the interior quad.
+    // o0..o7: outside vertices, that protrude out like flaps.
+    // f0..f7: frame   vertices, recessed by frame_pixels from the outside vertices.
+
+    p0, p1, p2, p3 := get_quad(r, snap_coordinates=true);
+
+    i0 := p0 + xy( extra_w,  extra_h);
+    i1 := p1 + xy(-extra_w,  extra_h);
+    i2 := p2 + xy(-extra_w, -extra_h);
+    i3 := p3 + xy( extra_w, -extra_h);
+
+    o0 := i0;
+    o1 := i1;
+    o2 := i1;
+    o3 := i2;
+    o4 := i2;
+    o5 := i3;
+    o6 := i3;
+    o7 := i0;
+
+    o0.y = p0.y;
+    o1.y = p0.y;
+    o2.x = p1.x;
+    o3.x = p1.x;
+    o4.y = p2.y;
+    o5.y = p2.y;
+    o6.x = p0.x;
+    o7.x = p0.x;
+
+    if color.w {
+        Simp.immediate_quad(o0, o1, i1, i0, color);
+        Simp.immediate_quad(i1, o2, o3, i2, color);
+        Simp.immediate_quad(i3, i2, o4, o5, color);
+        Simp.immediate_quad(o7, i0, i3, o6, color);
+        Simp.immediate_quad(i0, i1, i2, i3, color);
+    }
+
+    f0, f1, f2, f3, f4, f5, f6, f7: Math.Vector2 = ---;
+
+    if frame_pixels {
+        f0 = o0;
+        f1 = o1;
+        f2 = o2;
+        f3 = o3;
+        f4 = o4;
+        f5 = o5;
+        f6 = o6;
+        f7 = o7;
+
+        f0.y += frame_pixels;
+
+        f1.y += frame_pixels;
+        f2.x -= frame_pixels;
+        f3.x -= frame_pixels;
+        f4.y -= frame_pixels;
+        f5.y -= frame_pixels;
+        f6.x += frame_pixels;
+        f7.x += frame_pixels;
+
+        Simp.immediate_quad(o0, o1, f1, f0, frame_color);
+        Simp.immediate_quad(f2, o2, o3, f3, frame_color);
+        Simp.immediate_quad(f5, f4, o4, o5, frame_color);
+        Simp.immediate_quad(o7, f7, f6, o6, frame_color);
+    }
+
+    denom := shape.pixels_per_edge_segment;
+    if denom <= 0 {
+        denom = 4.0;  // Fail over to some value. Who knows if this is a good idea.
+    }
+
+    num_segments := cast(s32) floor(TAU * radius_pixels / denom + .5);
+    if num_segments < 1  num_segments = 1;
+
+    dtheta := TAU * .25 * (1 / cast(float) num_segments);
+
+    // @Speed: Math.Vector3 stuff.
+    i0_3 := to_vec3(i0);
+    i1_3 := to_vec3(i1);
+    i2_3 := to_vec3(i2);
+    i3_3 := to_vec3(i3);
+
+    for i: 0..num_segments - 1 {
+        // @Speed: Record old theta and re-use.
+        theta0 := dtheta * i;
+        theta1 := theta0 + dtheta;
+
+        ct0 := cos(theta0);
+        ct1 := cos(theta1);
+        st0 := sin(theta0);
+        st1 := sin(theta1);
+
+        w0 := xyz(ct0*radius_pixels, st0*radius_pixels, 0);
+        w1 := xyz(ct1*radius_pixels, st1*radius_pixels, 0);
+
+        v0 := xy(ct0*(radius_pixels-frame_pixels), st0*(radius_pixels-frame_pixels));
+        v1 := xy(ct1*(radius_pixels-frame_pixels), st1*(radius_pixels-frame_pixels));
+
+        q0 := i2_3 + w0;
+        q1 := i2_3 + w1;
+        if flags & .NORTHEAST  {
+            Simp.immediate_triangle(i2_3, i2_3 + w0, i2_3 + w1, color, color, color);
+            if frame_pixels  Simp.immediate_quad(i2 + v1, i2 + v0, i2 + w0.xy, i2 + w1.xy, frame_color);
+        }
+
+        if flags & .SOUTHWEST  {
+            Simp.immediate_triangle(i0_3, i0_3 - w0, i0_3 - w1, color, color, color);
+            if frame_pixels  Simp.immediate_quad(i0 - v1, i0 - v0, i0 - w0.xy, i0 - w1.xy, frame_color);
+        }
+
+        m0 := xyz(-w0.y, w0.x, 0);
+        m1 := xyz(-w1.y, w1.x, 0);
+        n0 := xy(-v0.y, v0.x);
+        n1 := xy(-v1.y, v1.x);
+        if flags & .NORTHWEST  {
+            Simp.immediate_triangle(i3_3, i3_3 + m0, i3_3 + m1, color, color, color);
+            if frame_pixels  Simp.immediate_quad(i3 + n1, i3 + n0, i3 + m0.xy, i3 + m1.xy, frame_color);
+        }
+
+        if flags & .SOUTHEAST  {
+            Simp.immediate_triangle(i1_3, i1_3 - m0, i1_3 - m1, color, color, color);
+            if frame_pixels  Simp.immediate_quad(i1 - n1, i1 - n0, i1 - m0.xy, i1 - m1.xy, frame_color);
+        }
+    }
+
+    if !(flags & .NORTHEAST) {
+        Simp.immediate_quad(i2, o3, p2, o4, color);
+
+        // Our two quads are non-rectangular, so that we don't make a T junction
+        // or generate unsightly alpha overlap.
+        // See how much I care about you???
+
+        if frame_pixels {
+            f34 := xy(f3.x, f4.y);
+            Simp.immediate_quad(f4, f34, p2, o4, frame_color);
+            Simp.immediate_quad(f3, o3, p2, f34, frame_color);
+        }
+    }
+
+    if !(flags & .NORTHWEST) {
+        Simp.immediate_quad(o6, i3, o5, p3, color);
+
+        if frame_pixels {
+            f65 := xy(f6.x, f5.y);
+            Simp.immediate_quad(f65, f5, o5, p3, frame_color);
+            Simp.immediate_quad(o6, f6, f65, p3, frame_color);
+        }
+    }
+
+    if !(flags & .SOUTHWEST) {
+        Simp.immediate_quad(p0, o0, i0, o7, color);
+
+        if frame_pixels {
+            f70 := xy(f7.x, f0.y);
+            Simp.immediate_quad(p0, f70, f7, o7, frame_color);
+            Simp.immediate_quad(p0, o0, f0, f70, frame_color);
+        }
+    }
+
+    if !(flags & .SOUTHEAST) {
+        Simp.immediate_quad(o1, p1, o2, i1, color);
+
+        if frame_pixels {
+            f21 := xy(f2.x, f1.y);
+            Simp.immediate_quad(o1, p1, f21, f1, frame_color);
+            Simp.immediate_quad(f21, p1, o2, f2, frame_color);
+        }
+    }
+
+    Simp.immediate_flush();
+
+    return frame_pixels, radius_pixels;  // Sometimes used in scissoring.
 }

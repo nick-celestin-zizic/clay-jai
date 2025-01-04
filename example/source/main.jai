@@ -125,6 +125,7 @@ load_library :: (old_library: Library) -> Library {
         
         for type_info(procedure_table_type).members {
                     // cast(cast(*procedures, *u8) + it.offset_in_bytes, **void)
+                    // (*table.(*u8) + it.offset_in_bytes).(**void)
             address := (cast(**void)((cast(*u8) *table) + it.offset_in_bytes));
             address.* = Windows.GetProcAddress(handle, it.name.data);
             if !address.* {
