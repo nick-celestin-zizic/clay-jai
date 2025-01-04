@@ -35,6 +35,7 @@ State :: struct {
     }
     
     measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
+    handle_error: Clay.ErrorHandler;
 }
 
 // here we paste in all of the members of Font_Paths so that they are available as u16 constants!
@@ -62,54 +63,65 @@ Clay_State :: struct {
     disableCulling: bool;
     externalScrollHandlingEnabled: bool;
     debugSelectedElementId: u32;
-    debugViewWidth: u32;
-    debugViewHighlightColor: Clay.Color;
-    debugMaxElementsLatch: bool;
+    
     generation: u32;
     arenaResetOffset: u64;
     internalArena: Clay.Arena;
     
-    layoutElements: Clay.Clay__tArray;
-    renderCommands: Clay.Clay__tArray;
-    openLayoutElementStack: Clay.Clay__tArray;
-    layoutElementChildren: Clay.Clay__tArray;
-    layoutElementChildrenBuffer: Clay.Clay__tArray;
-    textElementData: Clay.Clay__tArray;
-    imageElementPointers: Clay.Clay__tArray;
-    reusableElementIndexBuffer: Clay.Clay__tArray;
-    layoutElementClipElementIds: Clay.Clay__tArray;
+    // Layout Elements / Render Commands
+    layoutElements: Clay.LayoutElementArray;
+    renderCommands: Clay.RenderCommandArray;
+    openLayoutElementStack: Clay.int32_tArray;
+    layoutElementChildren: Clay.int32_tArray;
+    layoutElementChildrenBuffer: Clay.int32_tArray;
+    textElementData: Clay.TextElementDataArray;
+    imageElementPointers: Clay.LayoutElementPointerArray;
+    reusableElementIndexBuffer: Clay.int32_tArray;
+    layoutElementClipElementIds: Clay.int32_tArray;
     
-    layoutConfigs: Clay.Clay__tArray;
-    elementConfigBuffer: Clay.Clay__tArray;
-    elementConfigs: Clay.Clay__tArray;
-    rectangleElementConfigs: Clay.Clay__tArray;
-    textElementConfigs: Clay.Clay__tArray;
-    imageElementConfigs: Clay.Clay__tArray;
-    floatingElementConfigs: Clay.Clay__tArray;
-    scrollElementConfigs: Clay.Clay__tArray;
-    customElementConfigs: Clay.Clay__tArray;
-    borderElementConfigs: Clay.Clay__tArray;
+    // Configs
+    layoutConfigs: Clay.LayoutConfigArray;
+    elementConfigBuffer: Clay.ElementConfigArray;
+    elementConfigs: Clay.ElementConfigArray;
+    rectangleElementConfigs: Clay.RectangleElementConfigArray;
+    textElementConfigs: Clay.TextElementConfigArray;
+    imageElementConfigs: Clay.ImageElementConfigArray;
+    floatingElementConfigs: Clay.FloatingElementConfigArray;
+    scrollElementConfigs: Clay.ScrollElementConfigArray;
+    customElementConfigs: Clay.CustomElementConfigArray;
+    borderElementConfigs: Clay.BorderElementConfigArray;
     
-    layoutElementIdStrings: Clay.Clay__tArray;
-    wrappedTextLines: Clay.Clay__tArray;
-    layoutElementTreeNodeArray1: Clay.Clay__tArray;
-    layoutElementTreeRoots: Clay.Clay__tArray;
-    layoutElementsHashMapInternal: Clay.Clay__tArray;
-    layoutElementsHashMap: Clay.Clay__tArray;
-    measureTextHashMapInternal: Clay.Clay__tArray;
-    measureTextHashMapInternalFreeList: Clay.Clay__tArray;
-    measureTextHashMap: Clay.Clay__tArray;
-    measuredWords: Clay.Clay__tArray;
-    measuredWordsFreeList: Clay.Clay__tArray;
-    openClipElementStack: Clay.Clay__tArray;
-    pointerOverIds: Clay.Clay__tArray;
-    scrollContainerDatas: Clay.Clay__tArray;
-    treeNodeVisited: Clay.Clay__tArray;
-    dynamicStringData: Clay.Clay__tArray;
-    debugElementData: Clay.Clay__tArray;
+    // Misc Data Structures
+    layoutElementIdStrings: Clay.StringArray;
+    wrappedTextLines: Clay.WrappedTextLineArray;
+    layoutElementTreeNodeArray1: Clay.LayoutElementTreeNodeArray;
+    layoutElementTreeRoots: Clay.LayoutElementTreeRootArray;
+    layoutElementsHashMapInternal: Clay.LayoutElementHashMapItemArray;
+    layoutElementsHashMap: Clay.int32_tArray;
+    measureTextHashMapInternal: Clay.MeasureTextCacheItemArray;
+    measureTextHashMapInternalFreeList: Clay.int32_tArray;
+    measureTextHashMap: Clay.int32_tArray;
+    measuredWords: Clay.MeasuredWordArray;
+    measuredWordsFreeList: Clay.int32_tArray;
+    openClipElementStack: Clay.int32_tArray;
+    pointerOverIds: Clay.ElementIdArray;
+    scrollContainerDatas: Clay.ScrollContainerDataInternalArray;
+    treeNodeVisited: Clay.BoolArray;
+    dynamicStringData: Clay.CharArray;
+    debugElementData: Clay.DebugElementDataArray;
     
-    MeasureText: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
-    QueryScrollOffset: (elementId: u32) -> Clay.Vector2 #c_call;
+    MeasureText: #type (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
+    QueryScrollOffset: #type (elementId: u32) -> Clay.Vector2 #c_call;
+    
+    // other globals that are not in the globals block
+    debugViewHighlightColor: Clay.Color;
+    debugViewWidth: u32;
+    warningsEnabled: bool;
+    maxElementCount: s32;
+    maxMeasureTextCacheWordCount: s32;
+    errorHandler: Clay.ErrorHandler;
+    booleanWarnings: Clay.BooleanWarnings;
+    warnings: Clay.WarningArray;
 }
 
 logx :: ($code: Code) #expand {

@@ -1,38 +1,8 @@
 //
 // This file was auto-generated using the following command:
 //
-// jai build.jai
+// jai generate.jai
 //
-
-#module_parameters (link_implementation := true);
-
-// The code below is what I used to compile clay into a static library and generate the initial bindings.
-// You would need to download clay.h from https://github.com/nicbarker/clay
-#if 0 {
-    // build clay static library
-    ok = build_cpp_static_lib("clay", "modules/clay/clay.h",
-        debug = true,
-        target = ifx OS == .WINDOWS then .NONE else OS, // windows target defaults to msvc and is very annoying bleh
-        extra = .["-DCLAY_IMPLEMENTATION", "-w"],
-    );
-    assert(ok);
-    log("Compiled clay static library!");
-    
-    // generate bindings for clay (NOTE: I edited what was generated so be careful!)
-    {   using options: Generate_Bindings_Options;
-        array_add(*strip_prefixes, "Clay_");
-        array_add(*source_files, "clay.c");
-        array_add(*libpaths, ".");
-        array_add(*libnames, "clay.lib");
-        ok = generate_bindings(options, "module.jai");
-        assert(ok);
-    }
-}
-
-// macro api
-
-#if link_implementation {
-
 Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig) #expand {
     OpenElement();
     AttachId(id);
@@ -102,73 +72,12 @@ BorderOutsideRadius :: inline (width: u32, color: Color, radius: float) -> Eleme
 
 Text :: inline (text: string, config: *TextElementConfig) { OpenTextElement(.{xx text.count, text.data}, config); }
 
-SizingFit     :: inline (sizeMinMax := SizingMinMax.{}) -> SizingAxis { return .{type = .FIT, sizeMinMax = sizeMinMax}; }
-SizingGrow    :: inline (sizeMinMax := SizingMinMax.{}) -> SizingAxis { return .{type = .GROW, sizeMinMax = sizeMinMax}; }
-SizingFixed   :: inline (size: float) -> SizingAxis { return .{type = .FIXED, sizeMinMax = .{size, size}}; }
-SizingPercent :: inline (sizePercent: float) -> SizingAxis { return .{type = .PERCENT, sizePercent = sizePercent}; }
+SizingFit     :: inline (minMax := SizingMinMax.{}) -> SizingAxis { return .{type = .FIT, size.minMax = minMax}; }
+SizingGrow    :: inline (minMax := SizingMinMax.{}) -> SizingAxis { return .{type = .GROW, size.minMax = minMax}; }
+SizingFixed   :: inline (size: float) -> SizingAxis { return .{type = .FIXED, size.minMax = .{size, size}}; }
+SizingPercent :: inline (percent: float) -> SizingAxis { return .{type = .PERCENT, size.percent = percent}; }
 
 CornerRadiusAll :: inline (r: float) -> CornerRadius { return .{r, r, r, r}; }
-
-// raylib rendered hooks
-
-Clay__pointerInfo: PointerData #elsewhere clay;
-Clay__layoutDimensions: Dimensions #elsewhere clay;
-Clay__dynamicElementIndexBaseHash: ElementId #elsewhere clay;
-Clay__dynamicElementIndex: u32 #elsewhere clay;
-Clay__debugModeEnabled: bool #elsewhere clay;
-Clay__disableCulling: bool #elsewhere clay;
-Clay__externalScrollHandlingEnabled: bool #elsewhere clay;
-Clay__debugSelectedElementId: u32 #elsewhere clay;
-Clay__debugViewWidth: u32 #elsewhere clay;
-Clay__debugViewHighlightColor: Color #elsewhere clay;
-Clay__debugMaxElementsLatch: bool #elsewhere clay;
-Clay__generation: u32 #elsewhere clay;
-Clay__arenaResetOffset: u64 #elsewhere clay;
-Clay__internalArena: Arena #elsewhere clay;
-
-Clay__layoutElements: Clay__tArray #elsewhere clay;
-Clay__renderCommands: Clay__tArray #elsewhere clay;
-Clay__openLayoutElementStack: Clay__tArray #elsewhere clay;
-Clay__layoutElementChildren: Clay__tArray #elsewhere clay;
-Clay__layoutElementChildrenBuffer: Clay__tArray #elsewhere clay;
-Clay__textElementData: Clay__tArray #elsewhere clay;
-Clay__imageElementPointers: Clay__tArray #elsewhere clay;
-Clay__reusableElementIndexBuffer: Clay__tArray #elsewhere clay;
-Clay__layoutElementClipElementIds: Clay__tArray #elsewhere clay;
-
-Clay__layoutConfigs: Clay__tArray #elsewhere clay;
-Clay__elementConfigBuffer: Clay__tArray #elsewhere clay;
-Clay__elementConfigs: Clay__tArray #elsewhere clay;
-Clay__rectangleElementConfigs: Clay__tArray #elsewhere clay;
-Clay__textElementConfigs: Clay__tArray #elsewhere clay;
-Clay__imageElementConfigs: Clay__tArray #elsewhere clay;
-Clay__floatingElementConfigs: Clay__tArray #elsewhere clay;
-Clay__scrollElementConfigs: Clay__tArray #elsewhere clay;
-Clay__customElementConfigs: Clay__tArray #elsewhere clay;
-Clay__borderElementConfigs: Clay__tArray #elsewhere clay;
-
-Clay__layoutElementIdStrings: Clay__tArray #elsewhere clay;
-Clay__wrappedTextLines: Clay__tArray #elsewhere clay;
-Clay__layoutElementTreeNodeArray1: Clay__tArray #elsewhere clay;
-Clay__layoutElementTreeRoots: Clay__tArray #elsewhere clay;
-Clay__layoutElementsHashMapInternal: Clay__tArray #elsewhere clay;
-Clay__layoutElementsHashMap: Clay__tArray #elsewhere clay;
-Clay__measureTextHashMapInternal: Clay__tArray #elsewhere clay;
-Clay__measureTextHashMapInternalFreeList: Clay__tArray #elsewhere clay;
-Clay__measureTextHashMap: Clay__tArray #elsewhere clay;
-Clay__measuredWords: Clay__tArray #elsewhere clay;
-Clay__measuredWordsFreeList: Clay__tArray #elsewhere clay;
-Clay__openClipElementStack: Clay__tArray #elsewhere clay;
-Clay__pointerOverIds: Clay__tArray #elsewhere clay;
-Clay__scrollContainerDatas: Clay__tArray #elsewhere clay;
-Clay__treeNodeVisited: Clay__tArray #elsewhere clay;
-Clay__dynamicStringData: Clay__tArray #elsewhere clay;
-Clay__debugElementData: Clay__tArray #elsewhere clay;
-
-Clay__MeasureText: (text: *String, config: *TextElementConfig) -> Dimensions #c_call #elsewhere clay;
-Clay__QueryScrollOffset: (elementId: u32) -> Vector2 #c_call #elsewhere clay;
-
-} // #if link_implementation
 
 Clay__tArray :: struct {
 	capacity: u32;
@@ -176,13 +85,7 @@ Clay__tArray :: struct {
 	internalArray: *void;
 }
 
-// Raylib_Font :: struct { fontId: u32; font: Raylib.Font; }
-// Clay_Raylib_Render :: (renderCommands: RenderCommandArray) -> void #c_call #elsewhere;
-// Raylib_MeasureText :: (text: *String, config: *TextElementConfig) -> Dimensions #c_call #elsewhere;
-// Clay_Raylib_Initialize :: (width: s32, height: s32, title: *u8, flags: u32) -> void #c_call #elsewhere;
 
-// RendererTexture :: Raylib.Texture2D;
-// Raylib :: #import "raylib-jai"; // TODO: think about an ergonomic renderer interface
 
 // Utility Structs -------------------------
 // Note: Clay_String is not guaranteed to be null terminated. It may be if created from a literal C string,
@@ -193,13 +96,12 @@ String :: struct {
 }
 
 StringArray :: struct {
-    capacity:      u32;
-    length:        u32;
+    capacity:      s32;
+    length:        s32;
     internalArray: *String;
 }
 
 Arena :: struct {
-    label:          String;
     nextAllocation: u64;
     capacity:       u64;
     memory:         *u8;
@@ -245,6 +147,7 @@ CornerRadius :: struct {
 }
 
 ElementConfigType :: enum s32 {
+    NONE               :: 0;
     RECTANGLE          :: 1;
     BORDER_CONTAINER   :: 2;
     FLOATING_CONTAINER :: 4;
@@ -252,7 +155,7 @@ ElementConfigType :: enum s32 {
     IMAGE              :: 16;
     TEXT               :: 32;
     CUSTOM             :: 64;
-
+    CLAY__ELEMENT_CONFIG_TYPE_NONE               :: NONE;
     CLAY__ELEMENT_CONFIG_TYPE_RECTANGLE          :: RECTANGLE;
     CLAY__ELEMENT_CONFIG_TYPE_BORDER_CONTAINER   :: BORDER_CONTAINER;
     CLAY__ELEMENT_CONFIG_TYPE_FLOATING_CONTAINER :: FLOATING_CONTAINER;
@@ -262,12 +165,9 @@ ElementConfigType :: enum s32 {
     CLAY__ELEMENT_CONFIG_TYPE_CUSTOM             :: CUSTOM;
 }
 
-// Element Configs ---------------------------
-// Layout
 LayoutDirection :: enum s32 {
     LEFT_TO_RIGHT :: 0;
     TOP_TO_BOTTOM :: 1;
-
     CLAY_LEFT_TO_RIGHT :: LEFT_TO_RIGHT;
     CLAY_TOP_TO_BOTTOM :: TOP_TO_BOTTOM;
 }
@@ -276,7 +176,6 @@ LayoutAlignmentX :: enum s32 {
     LEFT   :: 0;
     RIGHT  :: 1;
     CENTER :: 2;
-
     CLAY_ALIGN_X_LEFT   :: LEFT;
     CLAY_ALIGN_X_RIGHT  :: RIGHT;
     CLAY_ALIGN_X_CENTER :: CENTER;
@@ -286,7 +185,6 @@ LayoutAlignmentY :: enum s32 {
     TOP    :: 0;
     BOTTOM :: 1;
     CENTER :: 2;
-
     CLAY_ALIGN_Y_TOP    :: TOP;
     CLAY_ALIGN_Y_BOTTOM :: BOTTOM;
     CLAY_ALIGN_Y_CENTER :: CENTER;
@@ -297,7 +195,6 @@ SizingType :: enum s32 {
     GROW    :: 1;
     PERCENT :: 2;
     FIXED   :: 3;
-
     CLAY__SIZING_TYPE_FIT     :: FIT;
     CLAY__SIZING_TYPE_GROW    :: GROW;
     CLAY__SIZING_TYPE_PERCENT :: PERCENT;
@@ -315,11 +212,10 @@ SizingMinMax :: struct {
 }
 
 SizingAxis :: struct {
-    union {
-        sizeMinMax:  SizingMinMax;
-        sizePercent: float;
-    }
-
+    size: union {
+        minMax:  SizingMinMax;
+        percent: float;
+    };
     type: SizingType;
 }
 
@@ -341,9 +237,10 @@ LayoutConfig :: struct {
     layoutDirection: LayoutDirection;
 }
 
-// CLAY_LAYOUT_DEFAULT: LayoutConfig #elsewhere clay;
+LAYOUT_DEFAULT: LayoutConfig #elsewhere clay "CLAY_LAYOUT_DEFAULT"; // __GENERATED__ template
 
 // Rectangle
+// NOTE: Not declared in the typedef as an ifdef inside macro arguments is UB
 RectangleElementConfig :: struct {
     color:        Color;
     cornerRadius: CornerRadius;
@@ -354,7 +251,6 @@ TextElementConfigWrapMode :: enum s32 {
     WORDS    :: 0;
     NEWLINES :: 1;
     NONE     :: 2;
-
     CLAY_TEXT_WRAP_WORDS    :: WORDS;
     CLAY_TEXT_WRAP_NEWLINES :: NEWLINES;
     CLAY_TEXT_WRAP_NONE     :: NONE;
@@ -375,7 +271,6 @@ ImageElementConfig :: struct {
     sourceDimensions: Dimensions;
 }
 
-// Floating
 FloatingAttachPointType :: enum s32 {
     LEFT_TOP      :: 0;
     LEFT_CENTER   :: 1;
@@ -386,7 +281,6 @@ FloatingAttachPointType :: enum s32 {
     RIGHT_TOP     :: 6;
     RIGHT_CENTER  :: 7;
     RIGHT_BOTTOM  :: 8;
-
     CLAY_ATTACH_POINT_LEFT_TOP      :: LEFT_TOP;
     CLAY_ATTACH_POINT_LEFT_CENTER   :: LEFT_CENTER;
     CLAY_ATTACH_POINT_LEFT_BOTTOM   :: LEFT_BOTTOM;
@@ -403,12 +297,20 @@ FloatingAttachPoints :: struct {
     parent:  FloatingAttachPointType;
 }
 
+PointerCaptureMode :: enum s32 {
+    CAPTURE     :: 0;
+    PASSTHROUGH :: 1;
+    CLAY_POINTER_CAPTURE_MODE_CAPTURE     :: CAPTURE;
+    CLAY_POINTER_CAPTURE_MODE_PASSTHROUGH :: PASSTHROUGH;
+}
+
 FloatingElementConfig :: struct {
-    offset:     Vector2;
-    expand:     Dimensions;
-    zIndex:     u16;
-    parentId:   u32;
-    attachment: FloatingAttachPoints;
+    offset:             Vector2;
+    expand:             Dimensions;
+    zIndex:             u16;
+    parentId:           u32;
+    attachment:         FloatingAttachPoints;
+    pointerCaptureMode: PointerCaptureMode;
 }
 
 // Custom
@@ -460,8 +362,6 @@ ScrollContainerData :: struct {
     scrollContainerDimensions: Dimensions;
     contentDimensions:         Dimensions;
     config:                    ScrollElementConfig;
-
-    // Indicates whether an actual scroll container matched the provided ID or if the default struct was returned.
     found:                     bool;
 }
 
@@ -474,7 +374,6 @@ RenderCommandType :: enum s32 {
     SCISSOR_START :: 5;
     SCISSOR_END   :: 6;
     CUSTOM        :: 7;
-
     CLAY_RENDER_COMMAND_TYPE_NONE          :: NONE;
     CLAY_RENDER_COMMAND_TYPE_RECTANGLE     :: RECTANGLE;
     CLAY_RENDER_COMMAND_TYPE_BORDER        :: BORDER;
@@ -494,8 +393,8 @@ RenderCommand :: struct {
 }
 
 RenderCommandArray :: struct {
-    capacity:      u32;
-    length:        u32;
+    capacity:      s32;
+    length:        s32;
     internalArray: *RenderCommand;
 }
 
@@ -504,7 +403,6 @@ PointerDataInteractionState :: enum s32 {
     PRESSED             :: 1;
     RELEASED_THIS_FRAME :: 2;
     RELEASED            :: 3;
-
     CLAY_POINTER_DATA_PRESSED_THIS_FRAME  :: PRESSED_THIS_FRAME;
     CLAY_POINTER_DATA_PRESSED             :: PRESSED;
     CLAY_POINTER_DATA_RELEASED_THIS_FRAME :: RELEASED_THIS_FRAME;
@@ -516,38 +414,95 @@ PointerData :: struct {
     state:    PointerDataInteractionState;
 }
 
-#if link_implementation {
+ErrorType :: enum s32 {
+    TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED :: 0;
+    ARENA_CAPACITY_EXCEEDED                :: 1;
+    ELEMENTS_CAPACITY_EXCEEDED             :: 2;
+    TEXT_MEASUREMENT_CAPACITY_EXCEEDED     :: 3;
+    DUPLICATE_ID                           :: 4;
+    FLOATING_CONTAINER_PARENT_NOT_FOUND    :: 5;
+    INTERNAL_ERROR                         :: 6;
+    CLAY_ERROR_TYPE_TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED :: TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED;
+    CLAY_ERROR_TYPE_ARENA_CAPACITY_EXCEEDED                :: ARENA_CAPACITY_EXCEEDED;
+    CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED             :: ELEMENTS_CAPACITY_EXCEEDED;
+    CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED     :: TEXT_MEASUREMENT_CAPACITY_EXCEEDED;
+    CLAY_ERROR_TYPE_DUPLICATE_ID                           :: DUPLICATE_ID;
+    CLAY_ERROR_TYPE_FLOATING_CONTAINER_PARENT_NOT_FOUND    :: FLOATING_CONTAINER_PARENT_NOT_FOUND;
+    CLAY_ERROR_TYPE_INTERNAL_ERROR                         :: INTERNAL_ERROR;
+}
+
+ErrorData :: struct {
+    errorType: ErrorType;
+    errorText: String;
+    userData:  u64;
+}
+
+ErrorHandler :: struct {
+    errorHandlerFunction: #type (errorText: ErrorData) -> void #c_call;
+    userData:             u64;
+}
+
 // Function Forward Declarations ---------------------------------
 // Public API functions ---
-MinMemorySize :: (__args: ..Any) -> u32 #foreign clay "Clay_MinMemorySize";
+MinMemorySize :: () -> u32 #foreign clay "Clay_MinMemorySize";
+
 CreateArenaWithCapacityAndMemory :: (capacity: u32, offset: *void) -> Arena #foreign clay "Clay_CreateArenaWithCapacityAndMemory";
+
 SetPointerState :: (position: Vector2, pointerDown: bool) -> void #foreign clay "Clay_SetPointerState";
-Initialize :: (arena: Arena, layoutDimensions: Dimensions) -> void #foreign clay "Clay_Initialize";
+
+Initialize :: (arena: Arena, layoutDimensions: Dimensions, errorHandler: ErrorHandler) -> void #foreign clay "Clay_Initialize";
+
 UpdateScrollContainers :: (enableDragScrolling: bool, scrollDelta: Vector2, deltaTime: float) -> void #foreign clay "Clay_UpdateScrollContainers";
+
 SetLayoutDimensions :: (dimensions: Dimensions) -> void #foreign clay "Clay_SetLayoutDimensions";
-BeginLayout :: (__args: ..Any) -> void #foreign clay "Clay_BeginLayout";
-EndLayout :: (__args: ..Any) -> RenderCommandArray #foreign clay "Clay_EndLayout";
+
+BeginLayout :: () -> void #foreign clay "Clay_BeginLayout";
+
+EndLayout :: () -> RenderCommandArray #foreign clay "Clay_EndLayout";
+
 GetElementId :: (idString: String) -> ElementId #foreign clay "Clay_GetElementId";
+
 GetElementIdWithIndex :: (idString: String, index: u32) -> ElementId #foreign clay "Clay_GetElementIdWithIndex";
-Hovered :: (__args: ..Any) -> bool #foreign clay "Clay_Hovered";
+
+Hovered :: () -> bool #foreign clay "Clay_Hovered";
+
 OnHover :: (onHoverFunction: #type (elementId: ElementId, pointerData: PointerData, userData: s64) -> void #c_call, userData: s64) -> void #foreign clay "Clay_OnHover";
-GetScrollContainerData :: (id: ElementId) -> ScrollContainerData #foreign clay "Clay_GetScrollContainerData";
-SetMeasureTextFunction :: (measureTextFunction: #type (text: *String, config: *TextElementConfig) -> Dimensions #c_call) -> void #foreign clay "Clay_SetMeasureTextFunction";
-SetQueryScrollOffsetFunction :: (queryScrollOffsetFunction: #type (elementId: u32) -> Vector2 #c_call) -> void #foreign clay "Clay_SetQueryScrollOffsetFunction";
-RenderCommandArray_Get :: (array: *RenderCommandArray, index: s32) -> *RenderCommand #foreign clay "Clay_RenderCommandArray_Get";
-SetDebugModeEnabled :: (enabled: bool) -> void #foreign clay "Clay_SetDebugModeEnabled";
-SetExternalScrollHandlingEnabled :: (enabled: bool) -> void #foreign clay "Clay_SetExternalScrollHandlingEnabled";
+
 PointerOver :: (elementId: ElementId) -> bool #foreign clay "Clay_PointerOver";
+
+GetScrollContainerData :: (id: ElementId) -> ScrollContainerData #foreign clay "Clay_GetScrollContainerData";
+
+SetMeasureTextFunction :: (measureTextFunction: #type (text: *String, config: *TextElementConfig) -> Dimensions #c_call) -> void #foreign clay "Clay_SetMeasureTextFunction";
+
+SetQueryScrollOffsetFunction :: (queryScrollOffsetFunction: #type (elementId: u32) -> Vector2 #c_call) -> void #foreign clay "Clay_SetQueryScrollOffsetFunction";
+
+RenderCommandArray_Get :: (array: *RenderCommandArray, index: s32) -> *RenderCommand #foreign clay "Clay_RenderCommandArray_Get";
+
+SetDebugModeEnabled :: (enabled: bool) -> void #foreign clay "Clay_SetDebugModeEnabled";
+
+IsDebugModeEnabled :: () -> bool #foreign clay "Clay_IsDebugModeEnabled";
+
 SetCullingEnabled :: (enabled: bool) -> void #foreign clay "Clay_SetCullingEnabled";
 
+SetMaxElementCount :: (maxElementCount: s32) -> void #foreign clay "Clay_SetMaxElementCount";
+
+SetMaxMeasureTextCacheWordCount :: (maxMeasureTextCacheWordCount: s32) -> void #foreign clay "Clay_SetMaxMeasureTextCacheWordCount";
+
 // Internal API functions required by macros
-OpenElement :: (__args: ..Any) -> void #foreign clay "Clay__OpenElement";
-CloseElement :: (__args: ..Any) -> void #foreign clay "Clay__CloseElement";
+OpenElement :: () -> void #foreign clay "Clay__OpenElement";
+
+CloseElement :: () -> void #foreign clay "Clay__CloseElement";
+
 StoreLayoutConfig :: (config: LayoutConfig) -> *LayoutConfig #foreign clay "Clay__StoreLayoutConfig";
-ElementPostConfiguration :: (__args: ..Any) -> void #foreign clay "Clay__ElementPostConfiguration";
+
+ElementPostConfiguration :: () -> void #foreign clay "Clay__ElementPostConfiguration";
+
 AttachId :: (id: ElementId) -> void #foreign clay "Clay__AttachId";
+
 AttachLayoutConfig :: (config: *LayoutConfig) -> void #foreign clay "Clay__AttachLayoutConfig";
+
 AttachElementConfig :: (config: ElementConfigUnion, type: ElementConfigType) -> void #foreign clay "Clay__AttachElementConfig";
+
 StoreRectangleElementConfig :: (config: RectangleElementConfig) -> *RectangleElementConfig #foreign clay "Clay__StoreRectangleElementConfig";
 StoreTextElementConfig :: (config: TextElementConfig) -> *TextElementConfig #foreign clay "Clay__StoreTextElementConfig";
 StoreImageElementConfig :: (config: ImageElementConfig) -> *ImageElementConfig #foreign clay "Clay__StoreImageElementConfig";
@@ -555,22 +510,670 @@ StoreFloatingElementConfig :: (config: FloatingElementConfig) -> *FloatingElemen
 StoreCustomElementConfig :: (config: CustomElementConfig) -> *CustomElementConfig #foreign clay "Clay__StoreCustomElementConfig";
 StoreScrollElementConfig :: (config: ScrollElementConfig) -> *ScrollElementConfig #foreign clay "Clay__StoreScrollElementConfig";
 StoreBorderElementConfig :: (config: BorderElementConfig) -> *BorderElementConfig #foreign clay "Clay__StoreBorderElementConfig";
+
 HashString :: (key: String, offset: u32, seed: u32) -> ElementId #foreign clay "Clay__HashString";
-Noop :: (__args: ..Any) -> void #foreign clay "Clay__Noop";
+
 OpenTextElement :: (text: String, textConfig: *TextElementConfig) -> void #foreign clay "Clay__OpenTextElement";
 
-// Clay__debugViewHighlightColor: Color #elsewhere clay;
-// Clay__debugViewWidth: u32 #elsewhere clay;
-// Clay__debugMaxElementsLatch: bool #elsewhere clay;
+debugViewHighlightColor: Color #elsewhere clay "Clay__debugViewHighlightColor";
+debugViewWidth: u32 #elsewhere clay "Clay__debugViewWidth";
 
-#scope_file
+warningsEnabled: bool #elsewhere clay "Clay__warningsEnabled";
+maxElementCount: s32 #elsewhere clay "Clay__maxElementCount";
+maxMeasureTextCacheWordCount: s32 #elsewhere clay "Clay__maxMeasureTextCacheWordCount";
+ErrorHandlerFunctionDefault :: (errorText: ErrorData) -> void #foreign clay "Clay__ErrorHandlerFunctionDefault";
 
-clay :: #library,no_dll "windows/clay";
-} // #if link_implementation
+errorHandler: ErrorHandler #elsewhere clay "Clay__errorHandler";
+
+SPACECHAR: String #elsewhere clay "CLAY__SPACECHAR";
+STRING_DEFAULT: String #elsewhere clay "CLAY__STRING_DEFAULT";
+
+BooleanWarnings :: struct {
+    maxElementsExceeded:         bool;
+    maxRenderCommandsExceeded:   bool;
+    maxTextMeasureCacheExceeded: bool;
+}
+
+booleanWarnings: BooleanWarnings #elsewhere clay "Clay__booleanWarnings";
+
+Warning :: struct {
+    baseMessage:    String;
+    dynamicMessage: String;
+}
+
+WARNING_DEFAULT: Warning #elsewhere clay "CLAY__WARNING_DEFAULT";
+
+WarningArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *Warning;
+}
+
+WarningArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> WarningArray #foreign clay "Clay__WarningArray_Allocate_Arena";
+
+warnings: WarningArray #elsewhere clay "Clay_warnings";
+
+WarningArray_Add :: (array: *WarningArray, item: Warning) -> *Warning #foreign clay "Clay__WarningArray_Add";
+
+Array_Allocate_Arena :: (capacity: s32, itemSize: u32, alignment: u32, arena: *Arena) -> *void #foreign clay "Clay__Array_Allocate_Arena";
+
+Array_RangeCheck :: (index: s32, length: s32) -> bool #foreign clay "Clay__Array_RangeCheck";
+
+Array_AddCapacityCheck :: (length: s32, capacity: s32) -> bool #foreign clay "Clay__Array_AddCapacityCheck";
+
+BOOL_DEFAULT: bool #elsewhere clay "CLAY__BOOL_DEFAULT";
+
+BoolArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *bool;
+}
+
+BoolArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> BoolArray #foreign clay "Clay__BoolArray_Allocate_Arena";
+
+// __GENERATED__ template
+ELEMENT_ID_DEFAULT: ElementId #elsewhere clay "CLAY__ELEMENT_ID_DEFAULT";
+
+ElementIdArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *ElementId;
+}
+
+ElementIdArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> ElementIdArray #foreign clay "Clay__ElementIdArray_Allocate_Arena";
+
+ElementIdArray_Get :: (array: *ElementIdArray, index: s32) -> *ElementId #foreign clay "Clay__ElementIdArray_Get";
+
+ElementIdArray_Add :: (array: *ElementIdArray, item: ElementId) -> *ElementId #foreign clay "Clay__ElementIdArray_Add";
+
+// __GENERATED__ template
+ELEMENT_CONFIG_DEFAULT: ElementConfig #elsewhere clay "CLAY__ELEMENT_CONFIG_DEFAULT";
+
+ElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *ElementConfig;
+}
+
+ElementConfigArraySlice :: struct {
+    length:        s32;
+    internalArray: *ElementConfig;
+}
+
+ElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> ElementConfigArray #foreign clay "Clay__ElementConfigArray_Allocate_Arena";
+
+ElementConfigArray_Get :: (array: *ElementConfigArray, index: s32) -> *ElementConfig #foreign clay "Clay__ElementConfigArray_Get";
+
+ElementConfigArray_Add :: (array: *ElementConfigArray, item: ElementConfig) -> *ElementConfig #foreign clay "Clay__ElementConfigArray_Add";
+
+ElementConfigArraySlice_Get :: (slice: *ElementConfigArraySlice, index: s32) -> *ElementConfig #foreign clay "Clay__ElementConfigArraySlice_Get";
+
+LayoutConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *LayoutConfig;
+}
+
+LayoutConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutConfigArray #foreign clay "Clay__LayoutConfigArray_Allocate_Arena";
+
+LayoutConfigArray_Add :: (array: *LayoutConfigArray, item: LayoutConfig) -> *LayoutConfig #foreign clay "Clay__LayoutConfigArray_Add";
+
+// __GENERATED__ template
+RECTANGLE_ELEMENT_CONFIG_DEFAULT: RectangleElementConfig #elsewhere clay "CLAY__RECTANGLE_ELEMENT_CONFIG_DEFAULT";
+
+RectangleElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *RectangleElementConfig;
+}
+
+RectangleElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> RectangleElementConfigArray #foreign clay "Clay__RectangleElementConfigArray_Allocate_Arena";
+
+RectangleElementConfigArray_Add :: (array: *RectangleElementConfigArray, item: RectangleElementConfig) -> *RectangleElementConfig #foreign clay "Clay__RectangleElementConfigArray_Add";
+
+// __GENERATED__ template
+TEXT_ELEMENT_CONFIG_DEFAULT: TextElementConfig #elsewhere clay "CLAY__TEXT_ELEMENT_CONFIG_DEFAULT";
+
+TextElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *TextElementConfig;
+}
+
+TextElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> TextElementConfigArray #foreign clay "Clay__TextElementConfigArray_Allocate_Arena";
+
+TextElementConfigArray_Add :: (array: *TextElementConfigArray, item: TextElementConfig) -> *TextElementConfig #foreign clay "Clay__TextElementConfigArray_Add";
+
+// __GENERATED__ template
+IMAGE_ELEMENT_CONFIG_DEFAULT: ImageElementConfig #elsewhere clay "CLAY__IMAGE_ELEMENT_CONFIG_DEFAULT";
+
+ImageElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *ImageElementConfig;
+}
+
+ImageElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> ImageElementConfigArray #foreign clay "Clay__ImageElementConfigArray_Allocate_Arena";
+
+ImageElementConfigArray_Add :: (array: *ImageElementConfigArray, item: ImageElementConfig) -> *ImageElementConfig #foreign clay "Clay__ImageElementConfigArray_Add";
+
+// __GENERATED__ template
+FLOATING_ELEMENT_CONFIG_DEFAULT: FloatingElementConfig #elsewhere clay "CLAY__FLOATING_ELEMENT_CONFIG_DEFAULT";
+
+FloatingElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *FloatingElementConfig;
+}
+
+FloatingElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> FloatingElementConfigArray #foreign clay "Clay__FloatingElementConfigArray_Allocate_Arena";
+
+FloatingElementConfigArray_Add :: (array: *FloatingElementConfigArray, item: FloatingElementConfig) -> *FloatingElementConfig #foreign clay "Clay__FloatingElementConfigArray_Add";
+
+// __GENERATED__ template
+CUSTOM_ELEMENT_CONFIG_DEFAULT: CustomElementConfig #elsewhere clay "CLAY__CUSTOM_ELEMENT_CONFIG_DEFAULT";
+
+CustomElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *CustomElementConfig;
+}
+
+CustomElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> CustomElementConfigArray #foreign clay "Clay__CustomElementConfigArray_Allocate_Arena";
+
+CustomElementConfigArray_Add :: (array: *CustomElementConfigArray, item: CustomElementConfig) -> *CustomElementConfig #foreign clay "Clay__CustomElementConfigArray_Add";
+
+// __GENERATED__ template
+SCROLL_ELEMENT_CONFIG_DEFAULT: ScrollElementConfig #elsewhere clay "CLAY__SCROLL_ELEMENT_CONFIG_DEFAULT";
+
+ScrollElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *ScrollElementConfig;
+}
+
+ScrollElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> ScrollElementConfigArray #foreign clay "Clay__ScrollElementConfigArray_Allocate_Arena";
+
+ScrollElementConfigArray_Add :: (array: *ScrollElementConfigArray, item: ScrollElementConfig) -> *ScrollElementConfig #foreign clay "Clay__ScrollElementConfigArray_Add";
+
+StringArraySlice :: struct {
+    length:        s32;
+    internalArray: *String;
+}
+
+StringArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> StringArray #foreign clay "Clay__StringArray_Allocate_Arena";
+
+StringArray_Add :: (array: *StringArray, item: String) -> *String #foreign clay "Clay__StringArray_Add";
+
+// __GENERATED__ template
+WrappedTextLine :: struct {
+    dimensions: Dimensions;
+    line:       String;
+}
+
+WRAPPED_TEXT_LINE_DEFAULT: WrappedTextLine #elsewhere clay "CLAY__WRAPPED_TEXT_LINE_DEFAULT";
+
+WrappedTextLineArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *WrappedTextLine;
+}
+
+WrappedTextLineArraySlice :: struct {
+    length:        s32;
+    internalArray: *WrappedTextLine;
+}
+
+WrappedTextLineArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> WrappedTextLineArray #foreign clay "Clay__WrappedTextLineArray_Allocate_Arena";
+
+WrappedTextLineArray_Add :: (array: *WrappedTextLineArray, item: WrappedTextLine) -> *WrappedTextLine #foreign clay "Clay__WrappedTextLineArray_Add";
+
+WrappedTextLineArray_Get :: (array: *WrappedTextLineArray, index: s32) -> *WrappedTextLine #foreign clay "Clay__WrappedTextLineArray_Get";
+
+// __GENERATED__ template
+TextElementData :: struct {
+    text:                String;
+    preferredDimensions: Dimensions;
+    elementIndex:        s32;
+    wrappedLines:        WrappedTextLineArraySlice;
+}
+
+TEXT_ELEMENT_DATA_DEFAULT: TextElementData #elsewhere clay "CLAY__TEXT_ELEMENT_DATA_DEFAULT";
+
+TextElementDataArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *TextElementData;
+}
+
+TextElementDataArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> TextElementDataArray #foreign clay "Clay__TextElementDataArray_Allocate_Arena";
+
+TextElementDataArray_Get :: (array: *TextElementDataArray, index: s32) -> *TextElementData #foreign clay "Clay__TextElementDataArray_Get";
+
+TextElementDataArray_Add :: (array: *TextElementDataArray, item: TextElementData) -> *TextElementData #foreign clay "Clay__TextElementDataArray_Add";
+
+// __GENERATED__ template
+BORDER_ELEMENT_CONFIG_DEFAULT: BorderElementConfig #elsewhere clay "CLAY__BORDER_ELEMENT_CONFIG_DEFAULT";
+
+BorderElementConfigArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *BorderElementConfig;
+}
+
+BorderElementConfigArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> BorderElementConfigArray #foreign clay "Clay__BorderElementConfigArray_Allocate_Arena";
+
+BorderElementConfigArray_Add :: (array: *BorderElementConfigArray, item: BorderElementConfig) -> *BorderElementConfig #foreign clay "Clay__BorderElementConfigArray_Add";
+
+// __GENERATED__ template
+LayoutElementChildren :: struct {
+    elements: *s32;
+    length:   u16;
+}
+
+LayoutElement :: struct {
+    childrenOrTextContent: union {
+        children:        LayoutElementChildren;
+        textElementData: *TextElementData;
+    };
+    dimensions:            Dimensions;
+    minDimensions:         Dimensions;
+    layoutConfig:          *LayoutConfig;
+    elementConfigs:        ElementConfigArraySlice;
+    configsEnabled:        u32;
+    id:                    u32;
+}
+
+LAYOUT_ELEMENT_DEFAULT: LayoutElement #elsewhere clay "CLAY__LAYOUT_ELEMENT_DEFAULT";
+
+LayoutElementArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *LayoutElement;
+}
+
+LayoutElementArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutElementArray #foreign clay "Clay_LayoutElementArray_Allocate_Arena";
+
+LayoutElementArray_Add :: (array: *LayoutElementArray, item: LayoutElement) -> *LayoutElement #foreign clay "Clay_LayoutElementArray_Add";
+
+LayoutElementArray_Get :: (array: *LayoutElementArray, index: s32) -> *LayoutElement #foreign clay "Clay_LayoutElementArray_Get";
+
+LayoutElementPointerArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: **LayoutElement;
+}
+
+LayoutElementPointerArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutElementPointerArray #foreign clay "Clay__LayoutElementPointerArray_Allocate_Arena";
+
+LayoutElementPointerArray_Add :: (array: *LayoutElementPointerArray, item: *LayoutElement) -> **LayoutElement #foreign clay "Clay__LayoutElementPointerArray_Add";
+
+LayoutElementPointerArray_Get :: (array: *LayoutElementPointerArray, index: s32) -> *LayoutElement #foreign clay "Clay__LayoutElementPointerArray_Get";
+
+LayoutElementPointerArray_RemoveSwapback :: (array: *LayoutElementPointerArray, index: s32) -> *LayoutElement #foreign clay "Clay__LayoutElementPointerArray_RemoveSwapback";
+
+// __GENERATED__ template
+RENDER_COMMAND_DEFAULT: RenderCommand #elsewhere clay "CLAY__RENDER_COMMAND_DEFAULT";
+
+RenderCommandArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> RenderCommandArray #foreign clay "Clay_RenderCommandArray_Allocate_Arena";
+
+RenderCommandArray_Add :: (array: *RenderCommandArray, item: RenderCommand) -> *RenderCommand #foreign clay "Clay_RenderCommandArray_Add";
+
+// __GENERATED__ template
+ScrollContainerDataInternal :: struct {
+    layoutElement:       *LayoutElement;
+    boundingBox:         BoundingBox;
+    contentSize:         Dimensions;
+    scrollOrigin:        Vector2;
+    pointerOrigin:       Vector2;
+    scrollMomentum:      Vector2;
+    scrollPosition:      Vector2;
+    previousDelta:       Vector2;
+    momentumTime:        float;
+    elementId:           u32;
+    openThisFrame:       bool;
+    pointerScrollActive: bool;
+}
+
+SCROLL_CONTAINER_DEFAULT: ScrollContainerDataInternal #elsewhere clay "CLAY__SCROLL_CONTAINER_DEFAULT";
+
+ScrollContainerDataInternalArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *ScrollContainerDataInternal;
+}
+
+ScrollContainerDataInternalArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> ScrollContainerDataInternalArray #foreign clay "Clay__ScrollContainerDataInternalArray_Allocate_Arena";
+
+ScrollContainerDataInternalArray_Add :: (array: *ScrollContainerDataInternalArray, item: ScrollContainerDataInternal) -> *ScrollContainerDataInternal #foreign clay "Clay__ScrollContainerDataInternalArray_Add";
+
+ScrollContainerDataInternalArray_Get :: (array: *ScrollContainerDataInternalArray, index: s32) -> *ScrollContainerDataInternal #foreign clay "Clay__ScrollContainerDataInternalArray_Get";
+
+ScrollContainerDataInternalArray_RemoveSwapback :: (array: *ScrollContainerDataInternalArray, index: s32) -> ScrollContainerDataInternal #foreign clay "Clay__ScrollContainerDataInternalArray_RemoveSwapback";
+
+// __GENERATED__ template
+DebugElementData :: struct {
+    collision: bool;
+    collapsed: bool;
+}
+
+DEBUG_ELEMENT_DATA_DEFAULT: DebugElementData #elsewhere clay "CLAY__DEBUG_ELEMENT_DATA_DEFAULT";
+
+DebugElementDataArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *DebugElementData;
+}
+
+DebugElementDataArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> DebugElementDataArray #foreign clay "Clay__DebugElementDataArray_Allocate_Arena";
+
+DebugElementDataArray_Add :: (array: *DebugElementDataArray, item: DebugElementData) -> *DebugElementData #foreign clay "Clay__DebugElementDataArray_Add";
+
+DebugElementDataArray_Get :: (array: *DebugElementDataArray, index: s32) -> *DebugElementData #foreign clay "Clay__DebugElementDataArray_Get";
+
+// __GENERATED__ template
+LayoutElementHashMapItem :: struct {
+    boundingBox:           BoundingBox;
+    elementId:             ElementId;
+    layoutElement:         *LayoutElement;
+    onHoverFunction:       #type (elementId: ElementId, pointerInfo: PointerData, userData: s64) -> void #c_call;
+    hoverFunctionUserData: s64;
+    nextIndex:             s32;
+    generation:            u32;
+    debugData:             *DebugElementData;
+}
+
+LAYOUT_ELEMENT_HASH_MAP_ITEM_DEFAULT: LayoutElementHashMapItem #elsewhere clay "CLAY__LAYOUT_ELEMENT_HASH_MAP_ITEM_DEFAULT";
+
+LayoutElementHashMapItemArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *LayoutElementHashMapItem;
+}
+
+LayoutElementHashMapItemArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutElementHashMapItemArray #foreign clay "Clay__LayoutElementHashMapItemArray_Allocate_Arena";
+
+LayoutElementHashMapItemArray_Get :: (array: *LayoutElementHashMapItemArray, index: s32) -> *LayoutElementHashMapItem #foreign clay "Clay__LayoutElementHashMapItemArray_Get";
+
+LayoutElementHashMapItemArray_Add :: (array: *LayoutElementHashMapItemArray, item: LayoutElementHashMapItem) -> *LayoutElementHashMapItem #foreign clay "Clay__LayoutElementHashMapItemArray_Add";
+
+// __GENERATED__ template
+MeasuredWord :: struct {
+    startOffset: s32;
+    length:      s32;
+    width:       float;
+    next:        s32;
+}
+
+MEASURED_WORD_DEFAULT: MeasuredWord #elsewhere clay "CLAY__MEASURED_WORD_DEFAULT";
+
+MeasuredWordArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *MeasuredWord;
+}
+
+MeasuredWordArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> MeasuredWordArray #foreign clay "Clay__MeasuredWordArray_Allocate_Arena";
+
+MeasuredWordArray_Get :: (array: *MeasuredWordArray, index: s32) -> *MeasuredWord #foreign clay "Clay__MeasuredWordArray_Get";
+
+MeasuredWordArray_Set :: (array: *MeasuredWordArray, index: s32, value: MeasuredWord) -> void #foreign clay "Clay__MeasuredWordArray_Set";
+
+MeasuredWordArray_Add :: (array: *MeasuredWordArray, item: MeasuredWord) -> *MeasuredWord #foreign clay "Clay__MeasuredWordArray_Add";
+
+// __GENERATED__ template
+MeasureTextCacheItem :: struct {
+    unwrappedDimensions:     Dimensions;
+    measuredWordsStartIndex: s32;
+    id:                      u32; // Hash map data
+    nextIndex:               s32;
+    generation:              u32;
+}
+
+MEASURE_TEXT_CACHE_ITEM_DEFAULT: MeasureTextCacheItem #elsewhere clay "CLAY__MEASURE_TEXT_CACHE_ITEM_DEFAULT";
+
+MeasureTextCacheItemArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *MeasureTextCacheItem;
+}
+
+MeasureTextCacheItemArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> MeasureTextCacheItemArray #foreign clay "Clay__MeasureTextCacheItemArray_Allocate_Arena";
+
+MeasureTextCacheItemArray_Get :: (array: *MeasureTextCacheItemArray, index: s32) -> *MeasureTextCacheItem #foreign clay "Clay__MeasureTextCacheItemArray_Get";
+
+MeasureTextCacheItemArray_Add :: (array: *MeasureTextCacheItemArray, item: MeasureTextCacheItem) -> *MeasureTextCacheItem #foreign clay "Clay__MeasureTextCacheItemArray_Add";
+
+MeasureTextCacheItemArray_Set :: (array: *MeasureTextCacheItemArray, index: s32, value: MeasureTextCacheItem) -> void #foreign clay "Clay__MeasureTextCacheItemArray_Set";
+
+int32_tArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *s32;
+}
+
+int32_tArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> int32_tArray #foreign clay "Clay__int32_tArray_Allocate_Arena";
+
+int32_tArray_Get :: (array: *int32_tArray, index: s32) -> s32 #foreign clay "Clay__int32_tArray_Get";
+
+int32_tArray_Add :: (array: *int32_tArray, item: s32) -> void #foreign clay "Clay__int32_tArray_Add";
+
+int32_tArray_Set :: (array: *int32_tArray, index: s32, value: s32) -> void #foreign clay "Clay__int32_tArray_Set";
+
+int32_tArray_RemoveSwapback :: (array: *int32_tArray, index: s32) -> s32 #foreign clay "Clay__int32_tArray_RemoveSwapback";
+
+// __GENERATED__ template
+LayoutElementTreeNode :: struct {
+    layoutElement:   *LayoutElement;
+    position:        Vector2;
+    nextChildOffset: Vector2;
+}
+
+LAYOUT_ELEMENT_TREE_NODE_DEFAULT: LayoutElementTreeNode #elsewhere clay "CLAY__LAYOUT_ELEMENT_TREE_NODE_DEFAULT";
+
+LayoutElementTreeNodeArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *LayoutElementTreeNode;
+}
+
+LayoutElementTreeNodeArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutElementTreeNodeArray #foreign clay "Clay__LayoutElementTreeNodeArray_Allocate_Arena";
+
+LayoutElementTreeNodeArray_Add :: (array: *LayoutElementTreeNodeArray, item: LayoutElementTreeNode) -> *LayoutElementTreeNode #foreign clay "Clay__LayoutElementTreeNodeArray_Add";
+
+LayoutElementTreeNodeArray_Get :: (array: *LayoutElementTreeNodeArray, index: s32) -> *LayoutElementTreeNode #foreign clay "Clay__LayoutElementTreeNodeArray_Get";
+
+// __GENERATED__ template
+LayoutElementTreeRoot :: struct {
+    layoutElementIndex: s32;
+    parentId:           u32; // This can be zero in the case of the root layout tree
+    clipElementId:      u32; // This can be zero if there is no clip element
+    zIndex:             s32;
+    pointerOffset:      Vector2; // Only used when scroll containers are managed externally
+}
+
+LAYOUT_ELEMENT_TREE_ROOT_DEFAULT: LayoutElementTreeRoot #elsewhere clay "CLAY__LAYOUT_ELEMENT_TREE_ROOT_DEFAULT";
+
+LayoutElementTreeRootArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *LayoutElementTreeRoot;
+}
+
+LayoutElementTreeRootArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> LayoutElementTreeRootArray #foreign clay "Clay__LayoutElementTreeRootArray_Allocate_Arena";
+
+LayoutElementTreeRootArray_Add :: (array: *LayoutElementTreeRootArray, item: LayoutElementTreeRoot) -> *LayoutElementTreeRoot #foreign clay "Clay__LayoutElementTreeRootArray_Add";
+
+LayoutElementTreeRootArray_Get :: (array: *LayoutElementTreeRootArray, index: s32) -> *LayoutElementTreeRoot #foreign clay "Clay__LayoutElementTreeRootArray_Get";
+
+CharArray :: struct {
+    capacity:      s32;
+    length:        s32;
+    internalArray: *u8;
+}
+
+CharArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> CharArray #foreign clay "Clay__CharArray_Allocate_Arena";
+
+// __GENERATED__ template
+WriteStringToCharBuffer :: (buffer: *CharArray, _string: String) -> String #foreign clay "Clay__WriteStringToCharBuffer";
+
+// Global Variable Definitions ----------------------------------------------
+pointerInfo: PointerData #elsewhere clay "Clay__pointerInfo";
+layoutDimensions: Dimensions #elsewhere clay "Clay__layoutDimensions";
+dynamicElementIndexBaseHash: ElementId #elsewhere clay "Clay__dynamicElementIndexBaseHash";
+dynamicElementIndex: u32 #elsewhere clay "Clay__dynamicElementIndex";
+debugModeEnabled: bool #elsewhere clay "Clay__debugModeEnabled";
+disableCulling: bool #elsewhere clay "Clay__disableCulling";
+externalScrollHandlingEnabled: bool #elsewhere clay "Clay__externalScrollHandlingEnabled";
+debugSelectedElementId: u32 #elsewhere clay "Clay__debugSelectedElementId";
+
+generation: u32 #elsewhere clay "Clay__generation";
+arenaResetOffset: u64 #elsewhere clay "Clay__arenaResetOffset";
+internalArena: Arena #elsewhere clay "Clay__internalArena";
+
+// Layout Elements / Render Commands
+layoutElements: LayoutElementArray #elsewhere clay "Clay__layoutElements";
+renderCommands: RenderCommandArray #elsewhere clay "Clay__renderCommands";
+openLayoutElementStack: int32_tArray #elsewhere clay "Clay__openLayoutElementStack";
+layoutElementChildren: int32_tArray #elsewhere clay "Clay__layoutElementChildren";
+layoutElementChildrenBuffer: int32_tArray #elsewhere clay "Clay__layoutElementChildrenBuffer";
+textElementData: TextElementDataArray #elsewhere clay "Clay__textElementData";
+imageElementPointers: LayoutElementPointerArray #elsewhere clay "Clay__imageElementPointers";
+reusableElementIndexBuffer: int32_tArray #elsewhere clay "Clay__reusableElementIndexBuffer";
+layoutElementClipElementIds: int32_tArray #elsewhere clay "Clay__layoutElementClipElementIds";
+
+// Configs
+layoutConfigs: LayoutConfigArray #elsewhere clay "Clay__layoutConfigs";
+elementConfigBuffer: ElementConfigArray #elsewhere clay "Clay__elementConfigBuffer";
+elementConfigs: ElementConfigArray #elsewhere clay "Clay__elementConfigs";
+rectangleElementConfigs: RectangleElementConfigArray #elsewhere clay "Clay__rectangleElementConfigs";
+textElementConfigs: TextElementConfigArray #elsewhere clay "Clay__textElementConfigs";
+imageElementConfigs: ImageElementConfigArray #elsewhere clay "Clay__imageElementConfigs";
+floatingElementConfigs: FloatingElementConfigArray #elsewhere clay "Clay__floatingElementConfigs";
+scrollElementConfigs: ScrollElementConfigArray #elsewhere clay "Clay__scrollElementConfigs";
+customElementConfigs: CustomElementConfigArray #elsewhere clay "Clay__customElementConfigs";
+borderElementConfigs: BorderElementConfigArray #elsewhere clay "Clay__borderElementConfigs";
+
+// Misc Data Structures
+layoutElementIdStrings: StringArray #elsewhere clay "Clay__layoutElementIdStrings";
+wrappedTextLines: WrappedTextLineArray #elsewhere clay "Clay__wrappedTextLines";
+layoutElementTreeNodeArray1: LayoutElementTreeNodeArray #elsewhere clay "Clay__layoutElementTreeNodeArray1";
+layoutElementTreeRoots: LayoutElementTreeRootArray #elsewhere clay "Clay__layoutElementTreeRoots";
+layoutElementsHashMapInternal: LayoutElementHashMapItemArray #elsewhere clay "Clay__layoutElementsHashMapInternal";
+layoutElementsHashMap: int32_tArray #elsewhere clay "Clay__layoutElementsHashMap";
+measureTextHashMapInternal: MeasureTextCacheItemArray #elsewhere clay "Clay__measureTextHashMapInternal";
+measureTextHashMapInternalFreeList: int32_tArray #elsewhere clay "Clay__measureTextHashMapInternalFreeList";
+measureTextHashMap: int32_tArray #elsewhere clay "Clay__measureTextHashMap";
+measuredWords: MeasuredWordArray #elsewhere clay "Clay__measuredWords";
+measuredWordsFreeList: int32_tArray #elsewhere clay "Clay__measuredWordsFreeList";
+openClipElementStack: int32_tArray #elsewhere clay "Clay__openClipElementStack";
+pointerOverIds: ElementIdArray #elsewhere clay "Clay__pointerOverIds";
+scrollContainerDatas: ScrollContainerDataInternalArray #elsewhere clay "Clay__scrollContainerDatas";
+treeNodeVisited: BoolArray #elsewhere clay "Clay__treeNodeVisited";
+dynamicStringData: CharArray #elsewhere clay "Clay__dynamicStringData";
+debugElementData: DebugElementDataArray #elsewhere clay "Clay__debugElementData";
+
+MeasureText: #type (text: *String, config: *TextElementConfig) -> Dimensions #c_call #elsewhere clay "Clay__MeasureText";
+QueryScrollOffset: #type (elementId: u32) -> Vector2 #c_call #elsewhere clay "Clay__QueryScrollOffset";
+
+GetOpenLayoutElement :: () -> *LayoutElement #foreign clay "Clay__GetOpenLayoutElement";
+
+ElementHasConfig :: (element: *LayoutElement, type: ElementConfigType) -> bool #foreign clay "Clay__ElementHasConfig";
+
+FindElementConfigWithType :: (element: *LayoutElement, type: ElementConfigType) -> ElementConfigUnion #foreign clay "Clay__FindElementConfigWithType";
+
+HashNumber :: (offset: u32, seed: u32) -> ElementId #foreign clay "Clay__HashNumber";
+
+Rehash :: (elementId: ElementId, number: u32) -> ElementId #foreign clay "Clay__Rehash";
+
+RehashWithNumber :: (id: u32, number: u32) -> u32 #foreign clay "Clay__RehashWithNumber";
+
+HashTextWithConfig :: (text: *String, config: *TextElementConfig) -> u32 #foreign clay "Clay__HashTextWithConfig";
+
+AddMeasuredWord :: (word: MeasuredWord, previousWord: *MeasuredWord) -> *MeasuredWord #foreign clay "Clay__AddMeasuredWord";
+
+MeasureTextCached :: (text: *String, config: *TextElementConfig) -> *MeasureTextCacheItem #foreign clay "Clay__MeasureTextCached";
+
+PointIsInsideRect :: (point: Vector2, rect: BoundingBox) -> bool #foreign clay "Clay__PointIsInsideRect";
+
+AddHashMapItem :: (elementId: ElementId, layoutElement: *LayoutElement) -> *LayoutElementHashMapItem #foreign clay "Clay__AddHashMapItem";
+
+GetHashMapItem :: (id: u32) -> *LayoutElementHashMapItem #foreign clay "Clay__GetHashMapItem";
+
+GenerateIdForAnonymousElement :: (openLayoutElement: *LayoutElement) -> void #foreign clay "Clay__GenerateIdForAnonymousElement";
+
+InitializeEphemeralMemory :: (arena: *Arena) -> void #foreign clay "Clay__InitializeEphemeralMemory";
+
+InitializePersistentMemory :: (arena: *Arena) -> void #foreign clay "Clay__InitializePersistentMemory";
+
+SizeDistributionType :: enum s32 {
+    SCROLL_CONTAINER     :: 0;
+    RESIZEABLE_CONTAINER :: 1;
+    GROW_CONTAINER       :: 2;
+    CLAY__SIZE_DISTRIBUTION_TYPE_SCROLL_CONTAINER     :: SCROLL_CONTAINER;
+    CLAY__SIZE_DISTRIBUTION_TYPE_RESIZEABLE_CONTAINER :: RESIZEABLE_CONTAINER;
+    CLAY__SIZE_DISTRIBUTION_TYPE_GROW_CONTAINER       :: GROW_CONTAINER;
+}
+
+DistributeSizeAmongChildren :: (xAxis: bool, sizeToDistribute: float, resizableContainerBuffer: int32_tArray, distributionType: SizeDistributionType) -> float #foreign clay "Clay__DistributeSizeAmongChildren";
+
+SizeContainersAlongAxis :: (xAxis: bool) -> void #foreign clay "Clay__SizeContainersAlongAxis";
+
+IntToString :: (integer: s32) -> String #foreign clay "Clay__IntToString";
+
+AddRenderCommand :: (renderCommand: RenderCommand) -> void #foreign clay "Clay__AddRenderCommand";
+
+ElementIsOffscreen :: (boundingBox: *BoundingBox) -> bool #foreign clay "Clay__ElementIsOffscreen";
+
+CalculateFinalLayout :: () -> void #foreign clay "Clay__CalculateFinalLayout";
+
+DEBUGVIEW_COLOR_1: Color #elsewhere clay "CLAY__DEBUGVIEW_COLOR_1";
+DEBUGVIEW_COLOR_2: Color #elsewhere clay "CLAY__DEBUGVIEW_COLOR_2";
+DEBUGVIEW_COLOR_3: Color #elsewhere clay "CLAY__DEBUGVIEW_COLOR_3";
+DEBUGVIEW_COLOR_4: Color #elsewhere clay "CLAY__DEBUGVIEW_COLOR_4";
+DEBUGVIEW_COLOR_SELECTED_ROW: Color #elsewhere clay "CLAY__DEBUGVIEW_COLOR_SELECTED_ROW";
+
+DebugView_TextNameConfig: TextElementConfig #elsewhere clay "Clay__DebugView_TextNameConfig";
+DebugView_ScrollViewItemLayoutConfig: LayoutConfig #elsewhere clay "Clay__DebugView_ScrollViewItemLayoutConfig";
+
+DebugElementConfigTypeLabelConfig :: struct {
+    label: String;
+    color: Color;
+}
+
+DebugGetElementConfigTypeLabel :: (type: ElementConfigType) -> DebugElementConfigTypeLabelConfig #foreign clay "Clay__DebugGetElementConfigTypeLabel";
+
+RenderDebugLayoutData :: struct {
+    rowCount:                s32;
+    selectedElementRowIndex: s32;
+}
+
+// Returns row count
+RenderDebugLayoutElementsList :: (initialRootsLength: s32, highlightedRowIndex: s32) -> RenderDebugLayoutData #foreign clay "Clay__RenderDebugLayoutElementsList";
+
+RenderDebugLayoutSizing :: (sizing: SizingAxis, infoTextConfig: *TextElementConfig) -> void #foreign clay "Clay__RenderDebugLayoutSizing";
+
+RenderDebugViewElementConfigHeader :: (elementId: String, type: ElementConfigType) -> void #foreign clay "Clay__RenderDebugViewElementConfigHeader";
+
+RenderDebugViewColor :: (color: Color, textConfig: *TextElementConfig) -> void #foreign clay "Clay__RenderDebugViewColor";
+
+RenderDebugViewCornerRadius :: (cornerRadius: CornerRadius, textConfig: *TextElementConfig) -> void #foreign clay "Clay__RenderDebugViewCornerRadius";
+
+RenderDebugViewBorder :: (index: s32, border: BorderData, textConfig: *TextElementConfig) -> void #foreign clay "Clay__RenderDebugViewBorder";
+
+HandleDebugViewCloseButtonInteraction :: (elementId: ElementId, pointerInfo: PointerData, userData: s64) -> void #foreign clay;
+
+RenderDebugView :: () -> void #foreign clay "Clay__RenderDebugView";
+
+DebugView_ErrorTextConfig: TextElementConfig #elsewhere clay "Clay__DebugView_ErrorTextConfig";
+
+SetExternalScrollHandlingEnabled :: (enabled: bool) -> void #foreign clay "Clay_SetExternalScrollHandlingEnabled";
 
 #scope_file
 
 #import "Basic"; // For assert
+
+clay :: #library,no_dll "windows/clay";
 
 #run {
     {
@@ -595,15 +1198,13 @@ clay :: #library,no_dll "windows/clay";
 
     {
         instance: Arena;
-        assert(((cast(*void)(*instance.label)) - cast(*void)(*instance)) == 0, "Arena.label has unexpected offset % instead of 0", ((cast(*void)(*instance.label)) - cast(*void)(*instance)));
-        assert(size_of(type_of(Arena.label)) == 16, "Arena.label has unexpected size % instead of 16", size_of(type_of(Arena.label)));
-        assert(((cast(*void)(*instance.nextAllocation)) - cast(*void)(*instance)) == 16, "Arena.nextAllocation has unexpected offset % instead of 16", ((cast(*void)(*instance.nextAllocation)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.nextAllocation)) - cast(*void)(*instance)) == 0, "Arena.nextAllocation has unexpected offset % instead of 0", ((cast(*void)(*instance.nextAllocation)) - cast(*void)(*instance)));
         assert(size_of(type_of(Arena.nextAllocation)) == 8, "Arena.nextAllocation has unexpected size % instead of 8", size_of(type_of(Arena.nextAllocation)));
-        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 24, "Arena.capacity has unexpected offset % instead of 24", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 8, "Arena.capacity has unexpected offset % instead of 8", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
         assert(size_of(type_of(Arena.capacity)) == 8, "Arena.capacity has unexpected size % instead of 8", size_of(type_of(Arena.capacity)));
-        assert(((cast(*void)(*instance.memory)) - cast(*void)(*instance)) == 32, "Arena.memory has unexpected offset % instead of 32", ((cast(*void)(*instance.memory)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.memory)) - cast(*void)(*instance)) == 16, "Arena.memory has unexpected offset % instead of 16", ((cast(*void)(*instance.memory)) - cast(*void)(*instance)));
         assert(size_of(type_of(Arena.memory)) == 8, "Arena.memory has unexpected size % instead of 8", size_of(type_of(Arena.memory)));
-        assert(size_of(Arena) == 40, "Arena has size % instead of 40", size_of(Arena));
+        assert(size_of(Arena) == 24, "Arena has size % instead of 24", size_of(Arena));
     }
 
     {
@@ -696,6 +1297,8 @@ clay :: #library,no_dll "windows/clay";
 
     {
         instance: SizingAxis;
+        assert(((cast(*void)(*instance.size)) - cast(*void)(*instance)) == 0, "SizingAxis.size has unexpected offset % instead of 0", ((cast(*void)(*instance.size)) - cast(*void)(*instance)));
+        assert(size_of(type_of(SizingAxis.size)) == 8, "SizingAxis.size has unexpected size % instead of 8", size_of(type_of(SizingAxis.size)));
         assert(((cast(*void)(*instance.type)) - cast(*void)(*instance)) == 8, "SizingAxis.type has unexpected offset % instead of 8", ((cast(*void)(*instance.type)) - cast(*void)(*instance)));
         assert(size_of(type_of(SizingAxis.type)) == 4, "SizingAxis.type has unexpected size % instead of 4", size_of(type_of(SizingAxis.type)));
         assert(size_of(SizingAxis) == 12, "SizingAxis has size % instead of 12", size_of(SizingAxis));
@@ -790,7 +1393,9 @@ clay :: #library,no_dll "windows/clay";
         assert(size_of(type_of(FloatingElementConfig.parentId)) == 4, "FloatingElementConfig.parentId has unexpected size % instead of 4", size_of(type_of(FloatingElementConfig.parentId)));
         assert(((cast(*void)(*instance.attachment)) - cast(*void)(*instance)) == 24, "FloatingElementConfig.attachment has unexpected offset % instead of 24", ((cast(*void)(*instance.attachment)) - cast(*void)(*instance)));
         assert(size_of(type_of(FloatingElementConfig.attachment)) == 8, "FloatingElementConfig.attachment has unexpected size % instead of 8", size_of(type_of(FloatingElementConfig.attachment)));
-        assert(size_of(FloatingElementConfig) == 32, "FloatingElementConfig has size % instead of 32", size_of(FloatingElementConfig));
+        assert(((cast(*void)(*instance.pointerCaptureMode)) - cast(*void)(*instance)) == 32, "FloatingElementConfig.pointerCaptureMode has unexpected offset % instead of 32", ((cast(*void)(*instance.pointerCaptureMode)) - cast(*void)(*instance)));
+        assert(size_of(type_of(FloatingElementConfig.pointerCaptureMode)) == 4, "FloatingElementConfig.pointerCaptureMode has unexpected size % instead of 4", size_of(type_of(FloatingElementConfig.pointerCaptureMode)));
+        assert(size_of(FloatingElementConfig) == 36, "FloatingElementConfig has size % instead of 36", size_of(FloatingElementConfig));
     }
 
     {
@@ -911,6 +1516,529 @@ clay :: #library,no_dll "windows/clay";
         assert(((cast(*void)(*instance.state)) - cast(*void)(*instance)) == 8, "PointerData.state has unexpected offset % instead of 8", ((cast(*void)(*instance.state)) - cast(*void)(*instance)));
         assert(size_of(type_of(PointerData.state)) == 4, "PointerData.state has unexpected size % instead of 4", size_of(type_of(PointerData.state)));
         assert(size_of(PointerData) == 12, "PointerData has size % instead of 12", size_of(PointerData));
+    }
+
+    {
+        instance: ErrorData;
+        assert(((cast(*void)(*instance.errorType)) - cast(*void)(*instance)) == 0, "ErrorData.errorType has unexpected offset % instead of 0", ((cast(*void)(*instance.errorType)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ErrorData.errorType)) == 4, "ErrorData.errorType has unexpected size % instead of 4", size_of(type_of(ErrorData.errorType)));
+        assert(((cast(*void)(*instance.errorText)) - cast(*void)(*instance)) == 8, "ErrorData.errorText has unexpected offset % instead of 8", ((cast(*void)(*instance.errorText)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ErrorData.errorText)) == 16, "ErrorData.errorText has unexpected size % instead of 16", size_of(type_of(ErrorData.errorText)));
+        assert(((cast(*void)(*instance.userData)) - cast(*void)(*instance)) == 24, "ErrorData.userData has unexpected offset % instead of 24", ((cast(*void)(*instance.userData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ErrorData.userData)) == 8, "ErrorData.userData has unexpected size % instead of 8", size_of(type_of(ErrorData.userData)));
+        assert(size_of(ErrorData) == 32, "ErrorData has size % instead of 32", size_of(ErrorData));
+    }
+
+    {
+        instance: ErrorHandler;
+        assert(((cast(*void)(*instance.errorHandlerFunction)) - cast(*void)(*instance)) == 0, "ErrorHandler.errorHandlerFunction has unexpected offset % instead of 0", ((cast(*void)(*instance.errorHandlerFunction)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ErrorHandler.errorHandlerFunction)) == 8, "ErrorHandler.errorHandlerFunction has unexpected size % instead of 8", size_of(type_of(ErrorHandler.errorHandlerFunction)));
+        assert(((cast(*void)(*instance.userData)) - cast(*void)(*instance)) == 8, "ErrorHandler.userData has unexpected offset % instead of 8", ((cast(*void)(*instance.userData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ErrorHandler.userData)) == 8, "ErrorHandler.userData has unexpected size % instead of 8", size_of(type_of(ErrorHandler.userData)));
+        assert(size_of(ErrorHandler) == 16, "ErrorHandler has size % instead of 16", size_of(ErrorHandler));
+    }
+
+    {
+        instance: BooleanWarnings;
+        assert(((cast(*void)(*instance.maxElementsExceeded)) - cast(*void)(*instance)) == 0, "BooleanWarnings.maxElementsExceeded has unexpected offset % instead of 0", ((cast(*void)(*instance.maxElementsExceeded)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BooleanWarnings.maxElementsExceeded)) == 1, "BooleanWarnings.maxElementsExceeded has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.maxElementsExceeded)));
+        assert(((cast(*void)(*instance.maxRenderCommandsExceeded)) - cast(*void)(*instance)) == 1, "BooleanWarnings.maxRenderCommandsExceeded has unexpected offset % instead of 1", ((cast(*void)(*instance.maxRenderCommandsExceeded)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BooleanWarnings.maxRenderCommandsExceeded)) == 1, "BooleanWarnings.maxRenderCommandsExceeded has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.maxRenderCommandsExceeded)));
+        assert(((cast(*void)(*instance.maxTextMeasureCacheExceeded)) - cast(*void)(*instance)) == 2, "BooleanWarnings.maxTextMeasureCacheExceeded has unexpected offset % instead of 2", ((cast(*void)(*instance.maxTextMeasureCacheExceeded)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BooleanWarnings.maxTextMeasureCacheExceeded)) == 1, "BooleanWarnings.maxTextMeasureCacheExceeded has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.maxTextMeasureCacheExceeded)));
+        assert(size_of(BooleanWarnings) == 3, "BooleanWarnings has size % instead of 3", size_of(BooleanWarnings));
+    }
+
+    {
+        instance: Warning;
+        assert(((cast(*void)(*instance.baseMessage)) - cast(*void)(*instance)) == 0, "Warning.baseMessage has unexpected offset % instead of 0", ((cast(*void)(*instance.baseMessage)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Warning.baseMessage)) == 16, "Warning.baseMessage has unexpected size % instead of 16", size_of(type_of(Warning.baseMessage)));
+        assert(((cast(*void)(*instance.dynamicMessage)) - cast(*void)(*instance)) == 16, "Warning.dynamicMessage has unexpected offset % instead of 16", ((cast(*void)(*instance.dynamicMessage)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Warning.dynamicMessage)) == 16, "Warning.dynamicMessage has unexpected size % instead of 16", size_of(type_of(Warning.dynamicMessage)));
+        assert(size_of(Warning) == 32, "Warning has size % instead of 32", size_of(Warning));
+    }
+
+    {
+        instance: WarningArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "WarningArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WarningArray.capacity)) == 4, "WarningArray.capacity has unexpected size % instead of 4", size_of(type_of(WarningArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "WarningArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WarningArray.length)) == 4, "WarningArray.length has unexpected size % instead of 4", size_of(type_of(WarningArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "WarningArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WarningArray.internalArray)) == 8, "WarningArray.internalArray has unexpected size % instead of 8", size_of(type_of(WarningArray.internalArray)));
+        assert(size_of(WarningArray) == 16, "WarningArray has size % instead of 16", size_of(WarningArray));
+    }
+
+    {
+        instance: BoolArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "BoolArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BoolArray.capacity)) == 4, "BoolArray.capacity has unexpected size % instead of 4", size_of(type_of(BoolArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "BoolArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BoolArray.length)) == 4, "BoolArray.length has unexpected size % instead of 4", size_of(type_of(BoolArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "BoolArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BoolArray.internalArray)) == 8, "BoolArray.internalArray has unexpected size % instead of 8", size_of(type_of(BoolArray.internalArray)));
+        assert(size_of(BoolArray) == 16, "BoolArray has size % instead of 16", size_of(BoolArray));
+    }
+
+    {
+        instance: ElementIdArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "ElementIdArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementIdArray.capacity)) == 4, "ElementIdArray.capacity has unexpected size % instead of 4", size_of(type_of(ElementIdArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "ElementIdArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementIdArray.length)) == 4, "ElementIdArray.length has unexpected size % instead of 4", size_of(type_of(ElementIdArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ElementIdArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementIdArray.internalArray)) == 8, "ElementIdArray.internalArray has unexpected size % instead of 8", size_of(type_of(ElementIdArray.internalArray)));
+        assert(size_of(ElementIdArray) == 16, "ElementIdArray has size % instead of 16", size_of(ElementIdArray));
+    }
+
+    {
+        instance: ElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "ElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementConfigArray.capacity)) == 4, "ElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(ElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "ElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementConfigArray.length)) == 4, "ElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(ElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementConfigArray.internalArray)) == 8, "ElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(ElementConfigArray.internalArray)));
+        assert(size_of(ElementConfigArray) == 16, "ElementConfigArray has size % instead of 16", size_of(ElementConfigArray));
+    }
+
+    {
+        instance: ElementConfigArraySlice;
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 0, "ElementConfigArraySlice.length has unexpected offset % instead of 0", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementConfigArraySlice.length)) == 4, "ElementConfigArraySlice.length has unexpected size % instead of 4", size_of(type_of(ElementConfigArraySlice.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ElementConfigArraySlice.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementConfigArraySlice.internalArray)) == 8, "ElementConfigArraySlice.internalArray has unexpected size % instead of 8", size_of(type_of(ElementConfigArraySlice.internalArray)));
+        assert(size_of(ElementConfigArraySlice) == 16, "ElementConfigArraySlice has size % instead of 16", size_of(ElementConfigArraySlice));
+    }
+
+    {
+        instance: LayoutConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutConfigArray.capacity)) == 4, "LayoutConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutConfigArray.length)) == 4, "LayoutConfigArray.length has unexpected size % instead of 4", size_of(type_of(LayoutConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutConfigArray.internalArray)) == 8, "LayoutConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutConfigArray.internalArray)));
+        assert(size_of(LayoutConfigArray) == 16, "LayoutConfigArray has size % instead of 16", size_of(LayoutConfigArray));
+    }
+
+    {
+        instance: RectangleElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "RectangleElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(RectangleElementConfigArray.capacity)) == 4, "RectangleElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(RectangleElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "RectangleElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(RectangleElementConfigArray.length)) == 4, "RectangleElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(RectangleElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "RectangleElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(RectangleElementConfigArray.internalArray)) == 8, "RectangleElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(RectangleElementConfigArray.internalArray)));
+        assert(size_of(RectangleElementConfigArray) == 16, "RectangleElementConfigArray has size % instead of 16", size_of(RectangleElementConfigArray));
+    }
+
+    {
+        instance: TextElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "TextElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementConfigArray.capacity)) == 4, "TextElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(TextElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "TextElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementConfigArray.length)) == 4, "TextElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(TextElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "TextElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementConfigArray.internalArray)) == 8, "TextElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(TextElementConfigArray.internalArray)));
+        assert(size_of(TextElementConfigArray) == 16, "TextElementConfigArray has size % instead of 16", size_of(TextElementConfigArray));
+    }
+
+    {
+        instance: ImageElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "ImageElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ImageElementConfigArray.capacity)) == 4, "ImageElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(ImageElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "ImageElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ImageElementConfigArray.length)) == 4, "ImageElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(ImageElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ImageElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ImageElementConfigArray.internalArray)) == 8, "ImageElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(ImageElementConfigArray.internalArray)));
+        assert(size_of(ImageElementConfigArray) == 16, "ImageElementConfigArray has size % instead of 16", size_of(ImageElementConfigArray));
+    }
+
+    {
+        instance: FloatingElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "FloatingElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(FloatingElementConfigArray.capacity)) == 4, "FloatingElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(FloatingElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "FloatingElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(FloatingElementConfigArray.length)) == 4, "FloatingElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(FloatingElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "FloatingElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(FloatingElementConfigArray.internalArray)) == 8, "FloatingElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(FloatingElementConfigArray.internalArray)));
+        assert(size_of(FloatingElementConfigArray) == 16, "FloatingElementConfigArray has size % instead of 16", size_of(FloatingElementConfigArray));
+    }
+
+    {
+        instance: CustomElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "CustomElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CustomElementConfigArray.capacity)) == 4, "CustomElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(CustomElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "CustomElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CustomElementConfigArray.length)) == 4, "CustomElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(CustomElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "CustomElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CustomElementConfigArray.internalArray)) == 8, "CustomElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(CustomElementConfigArray.internalArray)));
+        assert(size_of(CustomElementConfigArray) == 16, "CustomElementConfigArray has size % instead of 16", size_of(CustomElementConfigArray));
+    }
+
+    {
+        instance: ScrollElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "ScrollElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollElementConfigArray.capacity)) == 4, "ScrollElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(ScrollElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "ScrollElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollElementConfigArray.length)) == 4, "ScrollElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(ScrollElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ScrollElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollElementConfigArray.internalArray)) == 8, "ScrollElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(ScrollElementConfigArray.internalArray)));
+        assert(size_of(ScrollElementConfigArray) == 16, "ScrollElementConfigArray has size % instead of 16", size_of(ScrollElementConfigArray));
+    }
+
+    {
+        instance: StringArraySlice;
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 0, "StringArraySlice.length has unexpected offset % instead of 0", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(StringArraySlice.length)) == 4, "StringArraySlice.length has unexpected size % instead of 4", size_of(type_of(StringArraySlice.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "StringArraySlice.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(StringArraySlice.internalArray)) == 8, "StringArraySlice.internalArray has unexpected size % instead of 8", size_of(type_of(StringArraySlice.internalArray)));
+        assert(size_of(StringArraySlice) == 16, "StringArraySlice has size % instead of 16", size_of(StringArraySlice));
+    }
+
+    {
+        instance: WrappedTextLine;
+        assert(((cast(*void)(*instance.dimensions)) - cast(*void)(*instance)) == 0, "WrappedTextLine.dimensions has unexpected offset % instead of 0", ((cast(*void)(*instance.dimensions)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLine.dimensions)) == 8, "WrappedTextLine.dimensions has unexpected size % instead of 8", size_of(type_of(WrappedTextLine.dimensions)));
+        assert(((cast(*void)(*instance.line)) - cast(*void)(*instance)) == 8, "WrappedTextLine.line has unexpected offset % instead of 8", ((cast(*void)(*instance.line)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLine.line)) == 16, "WrappedTextLine.line has unexpected size % instead of 16", size_of(type_of(WrappedTextLine.line)));
+        assert(size_of(WrappedTextLine) == 24, "WrappedTextLine has size % instead of 24", size_of(WrappedTextLine));
+    }
+
+    {
+        instance: WrappedTextLineArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "WrappedTextLineArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLineArray.capacity)) == 4, "WrappedTextLineArray.capacity has unexpected size % instead of 4", size_of(type_of(WrappedTextLineArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "WrappedTextLineArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLineArray.length)) == 4, "WrappedTextLineArray.length has unexpected size % instead of 4", size_of(type_of(WrappedTextLineArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "WrappedTextLineArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLineArray.internalArray)) == 8, "WrappedTextLineArray.internalArray has unexpected size % instead of 8", size_of(type_of(WrappedTextLineArray.internalArray)));
+        assert(size_of(WrappedTextLineArray) == 16, "WrappedTextLineArray has size % instead of 16", size_of(WrappedTextLineArray));
+    }
+
+    {
+        instance: WrappedTextLineArraySlice;
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 0, "WrappedTextLineArraySlice.length has unexpected offset % instead of 0", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLineArraySlice.length)) == 4, "WrappedTextLineArraySlice.length has unexpected size % instead of 4", size_of(type_of(WrappedTextLineArraySlice.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "WrappedTextLineArraySlice.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(WrappedTextLineArraySlice.internalArray)) == 8, "WrappedTextLineArraySlice.internalArray has unexpected size % instead of 8", size_of(type_of(WrappedTextLineArraySlice.internalArray)));
+        assert(size_of(WrappedTextLineArraySlice) == 16, "WrappedTextLineArraySlice has size % instead of 16", size_of(WrappedTextLineArraySlice));
+    }
+
+    {
+        instance: TextElementData;
+        assert(((cast(*void)(*instance.text)) - cast(*void)(*instance)) == 0, "TextElementData.text has unexpected offset % instead of 0", ((cast(*void)(*instance.text)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementData.text)) == 16, "TextElementData.text has unexpected size % instead of 16", size_of(type_of(TextElementData.text)));
+        assert(((cast(*void)(*instance.preferredDimensions)) - cast(*void)(*instance)) == 16, "TextElementData.preferredDimensions has unexpected offset % instead of 16", ((cast(*void)(*instance.preferredDimensions)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementData.preferredDimensions)) == 8, "TextElementData.preferredDimensions has unexpected size % instead of 8", size_of(type_of(TextElementData.preferredDimensions)));
+        assert(((cast(*void)(*instance.elementIndex)) - cast(*void)(*instance)) == 24, "TextElementData.elementIndex has unexpected offset % instead of 24", ((cast(*void)(*instance.elementIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementData.elementIndex)) == 4, "TextElementData.elementIndex has unexpected size % instead of 4", size_of(type_of(TextElementData.elementIndex)));
+        assert(((cast(*void)(*instance.wrappedLines)) - cast(*void)(*instance)) == 32, "TextElementData.wrappedLines has unexpected offset % instead of 32", ((cast(*void)(*instance.wrappedLines)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementData.wrappedLines)) == 16, "TextElementData.wrappedLines has unexpected size % instead of 16", size_of(type_of(TextElementData.wrappedLines)));
+        assert(size_of(TextElementData) == 48, "TextElementData has size % instead of 48", size_of(TextElementData));
+    }
+
+    {
+        instance: TextElementDataArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "TextElementDataArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementDataArray.capacity)) == 4, "TextElementDataArray.capacity has unexpected size % instead of 4", size_of(type_of(TextElementDataArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "TextElementDataArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementDataArray.length)) == 4, "TextElementDataArray.length has unexpected size % instead of 4", size_of(type_of(TextElementDataArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "TextElementDataArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(TextElementDataArray.internalArray)) == 8, "TextElementDataArray.internalArray has unexpected size % instead of 8", size_of(type_of(TextElementDataArray.internalArray)));
+        assert(size_of(TextElementDataArray) == 16, "TextElementDataArray has size % instead of 16", size_of(TextElementDataArray));
+    }
+
+    {
+        instance: BorderElementConfigArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "BorderElementConfigArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BorderElementConfigArray.capacity)) == 4, "BorderElementConfigArray.capacity has unexpected size % instead of 4", size_of(type_of(BorderElementConfigArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "BorderElementConfigArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BorderElementConfigArray.length)) == 4, "BorderElementConfigArray.length has unexpected size % instead of 4", size_of(type_of(BorderElementConfigArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "BorderElementConfigArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BorderElementConfigArray.internalArray)) == 8, "BorderElementConfigArray.internalArray has unexpected size % instead of 8", size_of(type_of(BorderElementConfigArray.internalArray)));
+        assert(size_of(BorderElementConfigArray) == 16, "BorderElementConfigArray has size % instead of 16", size_of(BorderElementConfigArray));
+    }
+
+    {
+        instance: LayoutElementChildren;
+        assert(((cast(*void)(*instance.elements)) - cast(*void)(*instance)) == 0, "LayoutElementChildren.elements has unexpected offset % instead of 0", ((cast(*void)(*instance.elements)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementChildren.elements)) == 8, "LayoutElementChildren.elements has unexpected size % instead of 8", size_of(type_of(LayoutElementChildren.elements)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 8, "LayoutElementChildren.length has unexpected offset % instead of 8", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementChildren.length)) == 2, "LayoutElementChildren.length has unexpected size % instead of 2", size_of(type_of(LayoutElementChildren.length)));
+        assert(size_of(LayoutElementChildren) == 16, "LayoutElementChildren has size % instead of 16", size_of(LayoutElementChildren));
+    }
+
+    {
+        instance: LayoutElement;
+        assert(((cast(*void)(*instance.childrenOrTextContent)) - cast(*void)(*instance)) == 0, "LayoutElement.childrenOrTextContent has unexpected offset % instead of 0", ((cast(*void)(*instance.childrenOrTextContent)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.childrenOrTextContent)) == 16, "LayoutElement.childrenOrTextContent has unexpected size % instead of 16", size_of(type_of(LayoutElement.childrenOrTextContent)));
+        assert(((cast(*void)(*instance.dimensions)) - cast(*void)(*instance)) == 16, "LayoutElement.dimensions has unexpected offset % instead of 16", ((cast(*void)(*instance.dimensions)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.dimensions)) == 8, "LayoutElement.dimensions has unexpected size % instead of 8", size_of(type_of(LayoutElement.dimensions)));
+        assert(((cast(*void)(*instance.minDimensions)) - cast(*void)(*instance)) == 24, "LayoutElement.minDimensions has unexpected offset % instead of 24", ((cast(*void)(*instance.minDimensions)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.minDimensions)) == 8, "LayoutElement.minDimensions has unexpected size % instead of 8", size_of(type_of(LayoutElement.minDimensions)));
+        assert(((cast(*void)(*instance.layoutConfig)) - cast(*void)(*instance)) == 32, "LayoutElement.layoutConfig has unexpected offset % instead of 32", ((cast(*void)(*instance.layoutConfig)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.layoutConfig)) == 8, "LayoutElement.layoutConfig has unexpected size % instead of 8", size_of(type_of(LayoutElement.layoutConfig)));
+        assert(((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)) == 40, "LayoutElement.elementConfigs has unexpected offset % instead of 40", ((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.elementConfigs)) == 16, "LayoutElement.elementConfigs has unexpected size % instead of 16", size_of(type_of(LayoutElement.elementConfigs)));
+        assert(((cast(*void)(*instance.configsEnabled)) - cast(*void)(*instance)) == 56, "LayoutElement.configsEnabled has unexpected offset % instead of 56", ((cast(*void)(*instance.configsEnabled)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.configsEnabled)) == 4, "LayoutElement.configsEnabled has unexpected size % instead of 4", size_of(type_of(LayoutElement.configsEnabled)));
+        assert(((cast(*void)(*instance.id)) - cast(*void)(*instance)) == 60, "LayoutElement.id has unexpected offset % instead of 60", ((cast(*void)(*instance.id)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElement.id)) == 4, "LayoutElement.id has unexpected size % instead of 4", size_of(type_of(LayoutElement.id)));
+        assert(size_of(LayoutElement) == 64, "LayoutElement has size % instead of 64", size_of(LayoutElement));
+    }
+
+    {
+        instance: LayoutElementArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutElementArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementArray.capacity)) == 4, "LayoutElementArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutElementArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutElementArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementArray.length)) == 4, "LayoutElementArray.length has unexpected size % instead of 4", size_of(type_of(LayoutElementArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutElementArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementArray.internalArray)) == 8, "LayoutElementArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutElementArray.internalArray)));
+        assert(size_of(LayoutElementArray) == 16, "LayoutElementArray has size % instead of 16", size_of(LayoutElementArray));
+    }
+
+    {
+        instance: LayoutElementPointerArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutElementPointerArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementPointerArray.capacity)) == 4, "LayoutElementPointerArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutElementPointerArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutElementPointerArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementPointerArray.length)) == 4, "LayoutElementPointerArray.length has unexpected size % instead of 4", size_of(type_of(LayoutElementPointerArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutElementPointerArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementPointerArray.internalArray)) == 8, "LayoutElementPointerArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutElementPointerArray.internalArray)));
+        assert(size_of(LayoutElementPointerArray) == 16, "LayoutElementPointerArray has size % instead of 16", size_of(LayoutElementPointerArray));
+    }
+
+    {
+        instance: ScrollContainerDataInternal;
+        assert(((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)) == 0, "ScrollContainerDataInternal.layoutElement has unexpected offset % instead of 0", ((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.layoutElement)) == 8, "ScrollContainerDataInternal.layoutElement has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.layoutElement)));
+        assert(((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)) == 8, "ScrollContainerDataInternal.boundingBox has unexpected offset % instead of 8", ((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.boundingBox)) == 16, "ScrollContainerDataInternal.boundingBox has unexpected size % instead of 16", size_of(type_of(ScrollContainerDataInternal.boundingBox)));
+        assert(((cast(*void)(*instance.contentSize)) - cast(*void)(*instance)) == 24, "ScrollContainerDataInternal.contentSize has unexpected offset % instead of 24", ((cast(*void)(*instance.contentSize)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.contentSize)) == 8, "ScrollContainerDataInternal.contentSize has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.contentSize)));
+        assert(((cast(*void)(*instance.scrollOrigin)) - cast(*void)(*instance)) == 32, "ScrollContainerDataInternal.scrollOrigin has unexpected offset % instead of 32", ((cast(*void)(*instance.scrollOrigin)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.scrollOrigin)) == 8, "ScrollContainerDataInternal.scrollOrigin has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.scrollOrigin)));
+        assert(((cast(*void)(*instance.pointerOrigin)) - cast(*void)(*instance)) == 40, "ScrollContainerDataInternal.pointerOrigin has unexpected offset % instead of 40", ((cast(*void)(*instance.pointerOrigin)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.pointerOrigin)) == 8, "ScrollContainerDataInternal.pointerOrigin has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.pointerOrigin)));
+        assert(((cast(*void)(*instance.scrollMomentum)) - cast(*void)(*instance)) == 48, "ScrollContainerDataInternal.scrollMomentum has unexpected offset % instead of 48", ((cast(*void)(*instance.scrollMomentum)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.scrollMomentum)) == 8, "ScrollContainerDataInternal.scrollMomentum has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.scrollMomentum)));
+        assert(((cast(*void)(*instance.scrollPosition)) - cast(*void)(*instance)) == 56, "ScrollContainerDataInternal.scrollPosition has unexpected offset % instead of 56", ((cast(*void)(*instance.scrollPosition)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.scrollPosition)) == 8, "ScrollContainerDataInternal.scrollPosition has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.scrollPosition)));
+        assert(((cast(*void)(*instance.previousDelta)) - cast(*void)(*instance)) == 64, "ScrollContainerDataInternal.previousDelta has unexpected offset % instead of 64", ((cast(*void)(*instance.previousDelta)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.previousDelta)) == 8, "ScrollContainerDataInternal.previousDelta has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternal.previousDelta)));
+        assert(((cast(*void)(*instance.momentumTime)) - cast(*void)(*instance)) == 72, "ScrollContainerDataInternal.momentumTime has unexpected offset % instead of 72", ((cast(*void)(*instance.momentumTime)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.momentumTime)) == 4, "ScrollContainerDataInternal.momentumTime has unexpected size % instead of 4", size_of(type_of(ScrollContainerDataInternal.momentumTime)));
+        assert(((cast(*void)(*instance.elementId)) - cast(*void)(*instance)) == 76, "ScrollContainerDataInternal.elementId has unexpected offset % instead of 76", ((cast(*void)(*instance.elementId)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.elementId)) == 4, "ScrollContainerDataInternal.elementId has unexpected size % instead of 4", size_of(type_of(ScrollContainerDataInternal.elementId)));
+        assert(((cast(*void)(*instance.openThisFrame)) - cast(*void)(*instance)) == 80, "ScrollContainerDataInternal.openThisFrame has unexpected offset % instead of 80", ((cast(*void)(*instance.openThisFrame)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.openThisFrame)) == 1, "ScrollContainerDataInternal.openThisFrame has unexpected size % instead of 1", size_of(type_of(ScrollContainerDataInternal.openThisFrame)));
+        assert(((cast(*void)(*instance.pointerScrollActive)) - cast(*void)(*instance)) == 81, "ScrollContainerDataInternal.pointerScrollActive has unexpected offset % instead of 81", ((cast(*void)(*instance.pointerScrollActive)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternal.pointerScrollActive)) == 1, "ScrollContainerDataInternal.pointerScrollActive has unexpected size % instead of 1", size_of(type_of(ScrollContainerDataInternal.pointerScrollActive)));
+        assert(size_of(ScrollContainerDataInternal) == 88, "ScrollContainerDataInternal has size % instead of 88", size_of(ScrollContainerDataInternal));
+    }
+
+    {
+        instance: ScrollContainerDataInternalArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "ScrollContainerDataInternalArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternalArray.capacity)) == 4, "ScrollContainerDataInternalArray.capacity has unexpected size % instead of 4", size_of(type_of(ScrollContainerDataInternalArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "ScrollContainerDataInternalArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternalArray.length)) == 4, "ScrollContainerDataInternalArray.length has unexpected size % instead of 4", size_of(type_of(ScrollContainerDataInternalArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "ScrollContainerDataInternalArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ScrollContainerDataInternalArray.internalArray)) == 8, "ScrollContainerDataInternalArray.internalArray has unexpected size % instead of 8", size_of(type_of(ScrollContainerDataInternalArray.internalArray)));
+        assert(size_of(ScrollContainerDataInternalArray) == 16, "ScrollContainerDataInternalArray has size % instead of 16", size_of(ScrollContainerDataInternalArray));
+    }
+
+    {
+        instance: DebugElementData;
+        assert(((cast(*void)(*instance.collision)) - cast(*void)(*instance)) == 0, "DebugElementData.collision has unexpected offset % instead of 0", ((cast(*void)(*instance.collision)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementData.collision)) == 1, "DebugElementData.collision has unexpected size % instead of 1", size_of(type_of(DebugElementData.collision)));
+        assert(((cast(*void)(*instance.collapsed)) - cast(*void)(*instance)) == 1, "DebugElementData.collapsed has unexpected offset % instead of 1", ((cast(*void)(*instance.collapsed)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementData.collapsed)) == 1, "DebugElementData.collapsed has unexpected size % instead of 1", size_of(type_of(DebugElementData.collapsed)));
+        assert(size_of(DebugElementData) == 2, "DebugElementData has size % instead of 2", size_of(DebugElementData));
+    }
+
+    {
+        instance: DebugElementDataArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "DebugElementDataArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementDataArray.capacity)) == 4, "DebugElementDataArray.capacity has unexpected size % instead of 4", size_of(type_of(DebugElementDataArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "DebugElementDataArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementDataArray.length)) == 4, "DebugElementDataArray.length has unexpected size % instead of 4", size_of(type_of(DebugElementDataArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "DebugElementDataArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementDataArray.internalArray)) == 8, "DebugElementDataArray.internalArray has unexpected size % instead of 8", size_of(type_of(DebugElementDataArray.internalArray)));
+        assert(size_of(DebugElementDataArray) == 16, "DebugElementDataArray has size % instead of 16", size_of(DebugElementDataArray));
+    }
+
+    {
+        instance: LayoutElementHashMapItem;
+        assert(((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)) == 0, "LayoutElementHashMapItem.boundingBox has unexpected offset % instead of 0", ((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.boundingBox)) == 16, "LayoutElementHashMapItem.boundingBox has unexpected size % instead of 16", size_of(type_of(LayoutElementHashMapItem.boundingBox)));
+        assert(((cast(*void)(*instance.elementId)) - cast(*void)(*instance)) == 16, "LayoutElementHashMapItem.elementId has unexpected offset % instead of 16", ((cast(*void)(*instance.elementId)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.elementId)) == 32, "LayoutElementHashMapItem.elementId has unexpected size % instead of 32", size_of(type_of(LayoutElementHashMapItem.elementId)));
+        assert(((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)) == 48, "LayoutElementHashMapItem.layoutElement has unexpected offset % instead of 48", ((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.layoutElement)) == 8, "LayoutElementHashMapItem.layoutElement has unexpected size % instead of 8", size_of(type_of(LayoutElementHashMapItem.layoutElement)));
+        assert(((cast(*void)(*instance.onHoverFunction)) - cast(*void)(*instance)) == 56, "LayoutElementHashMapItem.onHoverFunction has unexpected offset % instead of 56", ((cast(*void)(*instance.onHoverFunction)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.onHoverFunction)) == 8, "LayoutElementHashMapItem.onHoverFunction has unexpected size % instead of 8", size_of(type_of(LayoutElementHashMapItem.onHoverFunction)));
+        assert(((cast(*void)(*instance.hoverFunctionUserData)) - cast(*void)(*instance)) == 64, "LayoutElementHashMapItem.hoverFunctionUserData has unexpected offset % instead of 64", ((cast(*void)(*instance.hoverFunctionUserData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.hoverFunctionUserData)) == 8, "LayoutElementHashMapItem.hoverFunctionUserData has unexpected size % instead of 8", size_of(type_of(LayoutElementHashMapItem.hoverFunctionUserData)));
+        assert(((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)) == 72, "LayoutElementHashMapItem.nextIndex has unexpected offset % instead of 72", ((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.nextIndex)) == 4, "LayoutElementHashMapItem.nextIndex has unexpected size % instead of 4", size_of(type_of(LayoutElementHashMapItem.nextIndex)));
+        assert(((cast(*void)(*instance.generation)) - cast(*void)(*instance)) == 76, "LayoutElementHashMapItem.generation has unexpected offset % instead of 76", ((cast(*void)(*instance.generation)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.generation)) == 4, "LayoutElementHashMapItem.generation has unexpected size % instead of 4", size_of(type_of(LayoutElementHashMapItem.generation)));
+        assert(((cast(*void)(*instance.debugData)) - cast(*void)(*instance)) == 80, "LayoutElementHashMapItem.debugData has unexpected offset % instead of 80", ((cast(*void)(*instance.debugData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItem.debugData)) == 8, "LayoutElementHashMapItem.debugData has unexpected size % instead of 8", size_of(type_of(LayoutElementHashMapItem.debugData)));
+        assert(size_of(LayoutElementHashMapItem) == 88, "LayoutElementHashMapItem has size % instead of 88", size_of(LayoutElementHashMapItem));
+    }
+
+    {
+        instance: LayoutElementHashMapItemArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutElementHashMapItemArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItemArray.capacity)) == 4, "LayoutElementHashMapItemArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutElementHashMapItemArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutElementHashMapItemArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItemArray.length)) == 4, "LayoutElementHashMapItemArray.length has unexpected size % instead of 4", size_of(type_of(LayoutElementHashMapItemArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutElementHashMapItemArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementHashMapItemArray.internalArray)) == 8, "LayoutElementHashMapItemArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutElementHashMapItemArray.internalArray)));
+        assert(size_of(LayoutElementHashMapItemArray) == 16, "LayoutElementHashMapItemArray has size % instead of 16", size_of(LayoutElementHashMapItemArray));
+    }
+
+    {
+        instance: MeasuredWord;
+        assert(((cast(*void)(*instance.startOffset)) - cast(*void)(*instance)) == 0, "MeasuredWord.startOffset has unexpected offset % instead of 0", ((cast(*void)(*instance.startOffset)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWord.startOffset)) == 4, "MeasuredWord.startOffset has unexpected size % instead of 4", size_of(type_of(MeasuredWord.startOffset)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "MeasuredWord.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWord.length)) == 4, "MeasuredWord.length has unexpected size % instead of 4", size_of(type_of(MeasuredWord.length)));
+        assert(((cast(*void)(*instance.width)) - cast(*void)(*instance)) == 8, "MeasuredWord.width has unexpected offset % instead of 8", ((cast(*void)(*instance.width)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWord.width)) == 4, "MeasuredWord.width has unexpected size % instead of 4", size_of(type_of(MeasuredWord.width)));
+        assert(((cast(*void)(*instance.next)) - cast(*void)(*instance)) == 12, "MeasuredWord.next has unexpected offset % instead of 12", ((cast(*void)(*instance.next)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWord.next)) == 4, "MeasuredWord.next has unexpected size % instead of 4", size_of(type_of(MeasuredWord.next)));
+        assert(size_of(MeasuredWord) == 16, "MeasuredWord has size % instead of 16", size_of(MeasuredWord));
+    }
+
+    {
+        instance: MeasuredWordArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "MeasuredWordArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWordArray.capacity)) == 4, "MeasuredWordArray.capacity has unexpected size % instead of 4", size_of(type_of(MeasuredWordArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "MeasuredWordArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWordArray.length)) == 4, "MeasuredWordArray.length has unexpected size % instead of 4", size_of(type_of(MeasuredWordArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "MeasuredWordArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasuredWordArray.internalArray)) == 8, "MeasuredWordArray.internalArray has unexpected size % instead of 8", size_of(type_of(MeasuredWordArray.internalArray)));
+        assert(size_of(MeasuredWordArray) == 16, "MeasuredWordArray has size % instead of 16", size_of(MeasuredWordArray));
+    }
+
+    {
+        instance: MeasureTextCacheItem;
+        assert(((cast(*void)(*instance.unwrappedDimensions)) - cast(*void)(*instance)) == 0, "MeasureTextCacheItem.unwrappedDimensions has unexpected offset % instead of 0", ((cast(*void)(*instance.unwrappedDimensions)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.unwrappedDimensions)) == 8, "MeasureTextCacheItem.unwrappedDimensions has unexpected size % instead of 8", size_of(type_of(MeasureTextCacheItem.unwrappedDimensions)));
+        assert(((cast(*void)(*instance.measuredWordsStartIndex)) - cast(*void)(*instance)) == 8, "MeasureTextCacheItem.measuredWordsStartIndex has unexpected offset % instead of 8", ((cast(*void)(*instance.measuredWordsStartIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.measuredWordsStartIndex)) == 4, "MeasureTextCacheItem.measuredWordsStartIndex has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.measuredWordsStartIndex)));
+        assert(((cast(*void)(*instance.id)) - cast(*void)(*instance)) == 12, "MeasureTextCacheItem.id has unexpected offset % instead of 12", ((cast(*void)(*instance.id)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.id)) == 4, "MeasureTextCacheItem.id has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.id)));
+        assert(((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)) == 16, "MeasureTextCacheItem.nextIndex has unexpected offset % instead of 16", ((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.nextIndex)) == 4, "MeasureTextCacheItem.nextIndex has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.nextIndex)));
+        assert(((cast(*void)(*instance.generation)) - cast(*void)(*instance)) == 20, "MeasureTextCacheItem.generation has unexpected offset % instead of 20", ((cast(*void)(*instance.generation)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.generation)) == 4, "MeasureTextCacheItem.generation has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.generation)));
+        assert(size_of(MeasureTextCacheItem) == 24, "MeasureTextCacheItem has size % instead of 24", size_of(MeasureTextCacheItem));
+    }
+
+    {
+        instance: MeasureTextCacheItemArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "MeasureTextCacheItemArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItemArray.capacity)) == 4, "MeasureTextCacheItemArray.capacity has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItemArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "MeasureTextCacheItemArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItemArray.length)) == 4, "MeasureTextCacheItemArray.length has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItemArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "MeasureTextCacheItemArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItemArray.internalArray)) == 8, "MeasureTextCacheItemArray.internalArray has unexpected size % instead of 8", size_of(type_of(MeasureTextCacheItemArray.internalArray)));
+        assert(size_of(MeasureTextCacheItemArray) == 16, "MeasureTextCacheItemArray has size % instead of 16", size_of(MeasureTextCacheItemArray));
+    }
+
+    {
+        instance: int32_tArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "int32_tArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(int32_tArray.capacity)) == 4, "int32_tArray.capacity has unexpected size % instead of 4", size_of(type_of(int32_tArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "int32_tArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(int32_tArray.length)) == 4, "int32_tArray.length has unexpected size % instead of 4", size_of(type_of(int32_tArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "int32_tArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(int32_tArray.internalArray)) == 8, "int32_tArray.internalArray has unexpected size % instead of 8", size_of(type_of(int32_tArray.internalArray)));
+        assert(size_of(int32_tArray) == 16, "int32_tArray has size % instead of 16", size_of(int32_tArray));
+    }
+
+    {
+        instance: LayoutElementTreeNode;
+        assert(((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)) == 0, "LayoutElementTreeNode.layoutElement has unexpected offset % instead of 0", ((cast(*void)(*instance.layoutElement)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNode.layoutElement)) == 8, "LayoutElementTreeNode.layoutElement has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeNode.layoutElement)));
+        assert(((cast(*void)(*instance.position)) - cast(*void)(*instance)) == 8, "LayoutElementTreeNode.position has unexpected offset % instead of 8", ((cast(*void)(*instance.position)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNode.position)) == 8, "LayoutElementTreeNode.position has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeNode.position)));
+        assert(((cast(*void)(*instance.nextChildOffset)) - cast(*void)(*instance)) == 16, "LayoutElementTreeNode.nextChildOffset has unexpected offset % instead of 16", ((cast(*void)(*instance.nextChildOffset)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNode.nextChildOffset)) == 8, "LayoutElementTreeNode.nextChildOffset has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeNode.nextChildOffset)));
+        assert(size_of(LayoutElementTreeNode) == 24, "LayoutElementTreeNode has size % instead of 24", size_of(LayoutElementTreeNode));
+    }
+
+    {
+        instance: LayoutElementTreeNodeArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutElementTreeNodeArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNodeArray.capacity)) == 4, "LayoutElementTreeNodeArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeNodeArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutElementTreeNodeArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNodeArray.length)) == 4, "LayoutElementTreeNodeArray.length has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeNodeArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutElementTreeNodeArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeNodeArray.internalArray)) == 8, "LayoutElementTreeNodeArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeNodeArray.internalArray)));
+        assert(size_of(LayoutElementTreeNodeArray) == 16, "LayoutElementTreeNodeArray has size % instead of 16", size_of(LayoutElementTreeNodeArray));
+    }
+
+    {
+        instance: LayoutElementTreeRoot;
+        assert(((cast(*void)(*instance.layoutElementIndex)) - cast(*void)(*instance)) == 0, "LayoutElementTreeRoot.layoutElementIndex has unexpected offset % instead of 0", ((cast(*void)(*instance.layoutElementIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRoot.layoutElementIndex)) == 4, "LayoutElementTreeRoot.layoutElementIndex has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRoot.layoutElementIndex)));
+        assert(((cast(*void)(*instance.parentId)) - cast(*void)(*instance)) == 4, "LayoutElementTreeRoot.parentId has unexpected offset % instead of 4", ((cast(*void)(*instance.parentId)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRoot.parentId)) == 4, "LayoutElementTreeRoot.parentId has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRoot.parentId)));
+        assert(((cast(*void)(*instance.clipElementId)) - cast(*void)(*instance)) == 8, "LayoutElementTreeRoot.clipElementId has unexpected offset % instead of 8", ((cast(*void)(*instance.clipElementId)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRoot.clipElementId)) == 4, "LayoutElementTreeRoot.clipElementId has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRoot.clipElementId)));
+        assert(((cast(*void)(*instance.zIndex)) - cast(*void)(*instance)) == 12, "LayoutElementTreeRoot.zIndex has unexpected offset % instead of 12", ((cast(*void)(*instance.zIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRoot.zIndex)) == 4, "LayoutElementTreeRoot.zIndex has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRoot.zIndex)));
+        assert(((cast(*void)(*instance.pointerOffset)) - cast(*void)(*instance)) == 16, "LayoutElementTreeRoot.pointerOffset has unexpected offset % instead of 16", ((cast(*void)(*instance.pointerOffset)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRoot.pointerOffset)) == 8, "LayoutElementTreeRoot.pointerOffset has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeRoot.pointerOffset)));
+        assert(size_of(LayoutElementTreeRoot) == 24, "LayoutElementTreeRoot has size % instead of 24", size_of(LayoutElementTreeRoot));
+    }
+
+    {
+        instance: LayoutElementTreeRootArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "LayoutElementTreeRootArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRootArray.capacity)) == 4, "LayoutElementTreeRootArray.capacity has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRootArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "LayoutElementTreeRootArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRootArray.length)) == 4, "LayoutElementTreeRootArray.length has unexpected size % instead of 4", size_of(type_of(LayoutElementTreeRootArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "LayoutElementTreeRootArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutElementTreeRootArray.internalArray)) == 8, "LayoutElementTreeRootArray.internalArray has unexpected size % instead of 8", size_of(type_of(LayoutElementTreeRootArray.internalArray)));
+        assert(size_of(LayoutElementTreeRootArray) == 16, "LayoutElementTreeRootArray has size % instead of 16", size_of(LayoutElementTreeRootArray));
+    }
+
+    {
+        instance: CharArray;
+        assert(((cast(*void)(*instance.capacity)) - cast(*void)(*instance)) == 0, "CharArray.capacity has unexpected offset % instead of 0", ((cast(*void)(*instance.capacity)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CharArray.capacity)) == 4, "CharArray.capacity has unexpected size % instead of 4", size_of(type_of(CharArray.capacity)));
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 4, "CharArray.length has unexpected offset % instead of 4", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CharArray.length)) == 4, "CharArray.length has unexpected size % instead of 4", size_of(type_of(CharArray.length)));
+        assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "CharArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
+        assert(size_of(type_of(CharArray.internalArray)) == 8, "CharArray.internalArray has unexpected size % instead of 8", size_of(type_of(CharArray.internalArray)));
+        assert(size_of(CharArray) == 16, "CharArray has size % instead of 16", size_of(CharArray));
+    }
+
+    {
+        instance: DebugElementConfigTypeLabelConfig;
+        assert(((cast(*void)(*instance.label)) - cast(*void)(*instance)) == 0, "DebugElementConfigTypeLabelConfig.label has unexpected offset % instead of 0", ((cast(*void)(*instance.label)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementConfigTypeLabelConfig.label)) == 16, "DebugElementConfigTypeLabelConfig.label has unexpected size % instead of 16", size_of(type_of(DebugElementConfigTypeLabelConfig.label)));
+        assert(((cast(*void)(*instance.color)) - cast(*void)(*instance)) == 16, "DebugElementConfigTypeLabelConfig.color has unexpected offset % instead of 16", ((cast(*void)(*instance.color)) - cast(*void)(*instance)));
+        assert(size_of(type_of(DebugElementConfigTypeLabelConfig.color)) == 16, "DebugElementConfigTypeLabelConfig.color has unexpected size % instead of 16", size_of(type_of(DebugElementConfigTypeLabelConfig.color)));
+        assert(size_of(DebugElementConfigTypeLabelConfig) == 32, "DebugElementConfigTypeLabelConfig has size % instead of 32", size_of(DebugElementConfigTypeLabelConfig));
+    }
+
+    {
+        instance: RenderDebugLayoutData;
+        assert(((cast(*void)(*instance.rowCount)) - cast(*void)(*instance)) == 0, "RenderDebugLayoutData.rowCount has unexpected offset % instead of 0", ((cast(*void)(*instance.rowCount)) - cast(*void)(*instance)));
+        assert(size_of(type_of(RenderDebugLayoutData.rowCount)) == 4, "RenderDebugLayoutData.rowCount has unexpected size % instead of 4", size_of(type_of(RenderDebugLayoutData.rowCount)));
+        assert(((cast(*void)(*instance.selectedElementRowIndex)) - cast(*void)(*instance)) == 4, "RenderDebugLayoutData.selectedElementRowIndex has unexpected offset % instead of 4", ((cast(*void)(*instance.selectedElementRowIndex)) - cast(*void)(*instance)));
+        assert(size_of(type_of(RenderDebugLayoutData.selectedElementRowIndex)) == 4, "RenderDebugLayoutData.selectedElementRowIndex has unexpected size % instead of 4", size_of(type_of(RenderDebugLayoutData.selectedElementRowIndex)));
+        assert(size_of(RenderDebugLayoutData) == 8, "RenderDebugLayoutData has size % instead of 8", size_of(RenderDebugLayoutData));
     }
 }
 

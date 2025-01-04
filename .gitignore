@@ -9,3 +9,4 @@ example/output/raylib.dll
 example/output/layout-new.pdb
 example/output/layout-new.dll
 /example/output
+/.build

@@ -9,6 +9,14 @@ main :: () {
     set_working_directory(String.path_strip_filename(System.get_path_of_running_executable()));
     main_thread_context = *context;
     
+    shared_state.handle_error = .{
+        (using error: Clay.ErrorData) -> void #c_call {
+            push_context,defer_pop cast(*#Context) userData;
+            assert(false, "CLAY ERROR %: %", errorType, string.{xx errorText.length, xx errorText.chars});
+        },
+        xx main_thread_context
+    };
+    
     // Windows is very bad at thread-switching by default unless you do this. Sad.
     #if OS == .WINDOWS {
         Windows.SetProcessDPIAware();
@@ -151,5 +159,5 @@ System          :: #import "System";
 Window_Creation :: #import "Window_Creation";
 Windows         :: #import "Windows";
 File_Utilities  :: #import "File_Utilities";
-Clay            :: #import,file "../../module.jai"(link_implementation=false);
+Clay            :: #import,file "../../module.jai";
 
