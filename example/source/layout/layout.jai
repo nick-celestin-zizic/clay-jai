@@ -203,6 +203,7 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
     UpdateScrollContainers(true, cast,force(Clay.Vector2)(mouse_wheel_delta*mouse_wheel_speed), delta_time);
     BeginLayout();
     create_layout();
+    show_debugger = IsDebugModeEnabled(); // in case we hit the little close button in the debugger window
     return EndLayout();
 }
 
