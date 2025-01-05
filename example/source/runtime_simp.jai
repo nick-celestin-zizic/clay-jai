@@ -106,18 +106,32 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
     
     array_reset_keeping_memory(*simp_scissors);
     
-    to_math_color :: inline (using color: Clay.Color) -> Math.Vector4 {
-        return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 };
-    }
+    to_math_color :: inline (using color: Clay.Color) -> Math.Vector4 { return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 }; }
+    round :: inline (value: float) -> int { return xx (value + 0.5); }
+    
     for j: 0..commands.length-1 {
         command := commands.internalArray[j];
         bound := command.boundingBox;
         if #complete command.commandType == {
         case .TEXT; {
-            Simp.set_shader_for_text();
+            config := command.config.textElementConfig;
             text := string.{xx command.text.length, xx command.text.chars };
-            font := get_font(command.config.textElementConfig.fontId, command.config.textElementConfig.fontSize);
-            Simp.draw_text(font, xx bound.x, xx bound.y+font.character_height, text, to_math_color(command.config.textElementConfig.textColor));
+            font := get_font(config.fontId, config.fontSize);
+            
+            // logx(cast(float) config.fontSize - bound.height);
+            
+            // :JankyFontStuff
+            janky_font_offset := config.fontSize * 0.9;
+            Simp.set_shader_for_text();
+            Simp.draw_text(font, xx (bound.x), xx (bound.y+janky_font_offset), text, to_math_color(config.textColor));
+            
+            // Simp.set_shader_for_color(true);
+            // Simp.immediate_quad(
+            //     bound.x, bound.y,
+            //     bound.x + bound.width,
+            //     bound.y + bound.height,
+            //     .{0, 0, 0, 1},
+            // );
         }
         case .IMAGE; {
             texture := (cast(*Simp.Texture)command.config.imageElementConfig.imageData);
@@ -198,7 +212,7 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
         }
         
     }
-    
+    // assert(false);
     Simp.immediate_flush();
     Simp.swap_buffers(simp_window);
 }
@@ -244,19 +258,34 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
             line_text_width = 0;
             continue;
         }
+        
         glyph := Simp.find_or_create_glyph(font_to_use, text.chars[i]);
+        // diff := cast(int) glyph.height - cast(int) glyph.ascent;
+        // height := cast(float)(cast(int) glyph.height + cast(int) glyph.offset_y);
+        // log("'%': %", string.{1, *text.chars[i]}, glyph.height - cast(float)glyph.offset_y);
+        assert(glyph.offset_y == glyph.ascent);
+        text_height = max(text_height, (cast(float)config.fontSize) + (glyph.height - cast(float)glyph.offset_y));//cast(float)config.fontSize + (glyph.height - cast(float)glyph.offset_y));
+        // assert(glyph.y0 <= glyph.ascent, "'%': %", string.{1, *text.chars[i]}, glyph.*);
+        // if glyph.y0 {
+        //     log("'%': %", string.{1, *text.chars[i]}, glyph.*);
+        // }
+        // if glyph.y0 && (glyph.offset_y != glyph.ascent) {
+        //     logx(string.{1, *text.chars[i]});
+        //     logx(glyph.*);
+        //     assert(false);
+        // }
+        
         if (glyph.advance != 0) {
             line_text_width += cast(float)glyph.advance;
         } else {
             line_text_width += (glyph.width + cast(float)glyph.offset_x);
         }
     }
-    
-
+    log("\n\n");
     max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
 
     text_size.width = max_text_width;
-    text_size.height = text_height;
+    text_size.height = text_height * 1.075; // :JankyFontStuff
 
     return text_size;
 }
