@@ -100,9 +100,12 @@ create_layout :: () {
         );
     });
     
-    stripe :: inline (name: string, color: Color) {
-        Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.6)) }}), Rectangle(.{ color = color }));
-    }
+    stripe :: (name, color) => Element(ID(name),
+        Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.65)) }}),
+        Rectangle(.{ color = color }),
+        children = #code {}
+    );
+    
     
     stripe("TopBorder1", COLOR_TOP_BORDER_5);
     stripe("TopBorder2", COLOR_TOP_BORDER_4);
