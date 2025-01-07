@@ -3,13 +3,18 @@
 //
 // jai generate.jai
 //
-Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig) #expand {
+Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig, $children := #code,null, cc := #caller_code) #expand {
     OpenElement();
     AttachId(id);
     AttachLayoutConfig(StoreLayoutConfig(layout));
     for configs AttachElementConfig((cast(*ElementConfigUnion)*it.config).*, it.type);
     ElementPostConfiguration();
-    `defer CloseElement();
+    #if children {
+        #insert,scope(cc) children;
+        CloseElement();
+    } else {
+        `defer CloseElement();
+    } 
 }
 
 ID :: inline (label: string, index: u32 = 0) -> ElementId { return HashString(.{xx label.count, label.data}, index, 0); }

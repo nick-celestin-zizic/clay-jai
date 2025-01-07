@@ -3,10 +3,8 @@
 clay_url :: "https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/clay.h";
 #run {
     set_build_options_dc(.{do_output=false});
-    ok := true;
     
-    ok = download_file(clay_url, "clay.c");
-    assert(ok);
+    assert(download_file(clay_url, "clay.c"));
     
     // we use static if here not because we need to know this at compile-time
     // (it already is compile-time!), but because #if does not introduce a new scope
@@ -16,11 +14,10 @@ clay_url :: "https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/cl
     }
     
     lib := join(lib_path, "/clay",, temp);
-    ok = build_cpp_static_lib(lib, "clay.c",
+    assert(build_cpp_static_lib(lib, "clay.c",
         debug = true, // I default to compilng with debug info, change this if you want to build for release!
         extra = .["-DCLAY_IMPLEMENTATION"],
-    );
-    assert(ok);
+    ));
     log("OK! compiled %", lib);
     
     // generate bindings for clay
@@ -29,7 +26,7 @@ clay_url :: "https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/cl
     // one is being compiled. You will have to comment out that line for the script to work!
     // I will submit a bug report and update this section if that changes.
     {   using options: Generate_Bindings_Options;
-        header = HEADER;
+        header = clay_header;
         static_library_suffix = STATIC_LIBRARY_SUFFIX;
         array_add(*strip_prefixes, "Clay__", "Clay_", "CLAY_");
         array_add(*extra_clang_arguments, "-DCLAY_IMPLEMENTATION");
@@ -60,21 +57,25 @@ clay_url :: "https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/cl
             }
             return .RECURSE;
         }
-        ok = generate_bindings(options, "module.jai");
-        assert(ok);
+        assert(generate_bindings(options, "module.jai"));
     }
     
     // TODO: compile generated module.jai file to generate a globals struct and save/restore procs?
 }
 
-HEADER :: #string _JAI
-Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig) #expand {
+clay_header :: #string _JAI
+Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig, $children := #code,null, cc := #caller_code) #expand {
     OpenElement();
     AttachId(id);
     AttachLayoutConfig(StoreLayoutConfig(layout));
     for configs AttachElementConfig((cast(*ElementConfigUnion)*it.config).*, it.type);
     ElementPostConfiguration();
-    `defer CloseElement();
+    #if children {
+        #insert,scope(cc) children;
+        CloseElement();
+    } else {
+        `defer CloseElement();
+    } 
 }
 
 ID :: inline (label: string, index: u32 = 0) -> ElementId { return HashString(.{xx label.count, label.data}, index, 0); }
@@ -191,7 +192,7 @@ download_file :: (url: string, target: string) -> bool {
     if error_code != .OK {
         error_message := to_string(curl_easy_strerror(error_code));
         defer free(error_message);
-        log_error("Curl Error: %", error_message);
+        log_error("Curl Error: % (%)", error_message, error_code);
         return false;
     }
     

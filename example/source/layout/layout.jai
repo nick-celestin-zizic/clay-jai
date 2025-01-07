@@ -36,104 +36,101 @@ create_layout :: () {
     
     mobile_screen := window_width < window_height;
     
-    { Element(ID("OuterContainer"), Layout(.{
-        layoutDirection = .TOP_TO_BOTTOM, sizing = .{ SizingGrow(), SizingGrow() } }),
+    Element(ID("OuterContainer"),
+        Layout(.{ layoutDirection = .TOP_TO_BOTTOM, sizing = .{ SizingGrow(), SizingGrow() } }),
         Rectangle(.{ color = COLOR_LIGHT })
     );
         
-        { Element(ID("Header"),
-            Layout(.{
-                sizing = .{ SizingGrow(), SizingFixed(xx hu(4)) },
-                childAlignment = .{ y = .CENTER },
-                childGap = xx wu(1.1),
-                padding = .{ xx wu(2.2), 0 }
-            })
-        );
-            header_text_config := StoreTextElementConfig(.{
-                fontId    = FONT_BODY,
-                fontSize  = xx hu(2),
-                textColor = .{61, 26, 5, 255},
-            });
-            
-            Text("Clay", header_text_config); 
-    
-            { Element(ID("Spacer"), Layout(.{ sizing = .{ width = SizingGrow() } }) ); }
-            
-            header_button_pad := cast(u16) wu(.8);
-            if !mobile_screen {
-                { Element(ID("LinkExamplesOuter"),
-                    Layout(.{ padding = .{ header_button_pad, 0 } }),
-                    Rectangle(.{/*link = ("https://github.com/nicbarker/clay/tree/main/examples"),*/ color = .{} })
-                );
-                    Text("Examples", header_text_config);
-                }
-    
-                { Element(ID("LinkDocsOuter"),
-                    Layout(.{ padding = .{ header_button_pad, 0 } }),
-                    Rectangle(.{/*link = ("https://github.com/nicbarker/clay/blob/main/README.md"),*/ color = .{} }) 
-                );
-                    Text("Docs", header_text_config);
-                }
-            }
-            
-            discord_link_id := ID("DiscordLink");
-            { Element(discord_link_id,
+    Element(ID("Header"),
+        Layout(.{
+            sizing = .{ SizingGrow(), SizingFixed(xx hu(4)) },
+            childAlignment = .{ y = .CENTER },
+            childGap = xx wu(1.1),
+            padding = .{ xx wu(2.2), 0 }
+        }),
+        children = #code {
+        
+        header_text_config := StoreTextElementConfig(.{
+            fontId    = FONT_BODY,
+            fontSize  = xx hu(2),
+            textColor = .{61, 26, 5, 255},
+        });
+        
+        Text("Clay", header_text_config); 
+
+        { Element(ID("Spacer"), Layout(.{ sizing = .{ width = SizingGrow() } }) ); }
+        
+        header_button_pad := cast(u16) wu(.8);
+        if !mobile_screen {
+            Element(ID("LinkExamplesOuter"),
                 Layout(.{ padding = .{ header_button_pad, 0 } }),
-                Rectangle(.{
-                    cornerRadius = CornerRadiusAll(10),
-                    // link = ("https://discord.gg/b4FTWkxdvT"),
-                    color = ifx PointerOver(discord_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
-                }),
-                BorderOutsideRadius(2, COLOR_RED, 10)
+                Rectangle(.{/*link = ("https://github.com/nicbarker/clay/tree/main/examples"),*/ color = .{} }),
+                children = Text("Examples", header_text_config)
             );
-                Text("Discord", header_text_config);
-            }
-            
-            github_link_id := ID("GithubLink");
-            { Element(github_link_id,
-                Layout(.{ padding = .{header_button_pad, 0 } }),
-                Rectangle(.{
-                    cornerRadius = CornerRadiusAll(10),
-                    // link = ("https://github.com/nicbarker/clay"),
-                    color = ifx PointerOver(github_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
-                }),
-                BorderOutsideRadius(2, COLOR_RED, 10)
+
+            Element(ID("LinkDocsOuter"),
+                Layout(.{ padding = .{ header_button_pad, 0 } }),
+                Rectangle(.{/*link = ("https://github.com/nicbarker/clay/blob/main/README.md"),*/ color = .{} }),
+                children = Text("Docs", header_text_config)
             );
-                Text("Github", header_text_config);
-            }
         }
         
-        stripe :: inline (name: string, color: Color) {
-            Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.6)) }}), Rectangle(.{ color = color }));
-        }
-        
-        stripe("TopBorder1", COLOR_TOP_BORDER_5);
-        stripe("TopBorder2", COLOR_TOP_BORDER_4);
-        stripe("TopBorder3", COLOR_TOP_BORDER_3);
-        stripe("TopBorder4", COLOR_TOP_BORDER_2);
-        stripe("TopBorder5", COLOR_TOP_BORDER_1);
-        
-        { Element(ID("OuterScrollContainer"),
-            Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
-            Scroll(.{ vertical = true }),
-            Border(.{ betweenChildren = .{2, COLOR_RED} })
+        discord_link_id := ID("DiscordLink");
+        Element(discord_link_id,
+            Layout(.{ padding = .{ header_button_pad, 0 } }),
+            Rectangle(.{
+                cornerRadius = CornerRadiusAll(10),
+                // link = ("https://discord.gg/b4FTWkxdvT"),
+                color = ifx PointerOver(discord_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
+            }),
+            BorderOutsideRadius(2, COLOR_RED, 10),
+            children = Text("Discord", header_text_config)
         );
-            if mobile_screen {
-                Basic.log_error("TODO: mobile layout");
-                // LandingPageMobile();
-                // FeatureBlocksMobile();
-                // DeclarativeSyntaxPageMobile();
-                // HighPerformancePageMobile(lerp_value);
-                // RendererPageMobile();
-            } else {
-                landing_page_desktop();
-                feature_blocks_desktop();
-                declarative_syntax_page_desktop();
-                high_performance_page_desktop();
-                renderer_page_desktop();
-                debugger_page_desktop();
-            }
-        }
+        
+        github_link_id := ID("GithubLink");
+        Element(github_link_id,
+            Layout(.{ padding = .{header_button_pad, 0 } }),
+            Rectangle(.{
+                cornerRadius = CornerRadiusAll(10),
+                // link = ("https://github.com/nicbarker/clay"),
+                color = ifx PointerOver(github_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
+            }),
+            BorderOutsideRadius(2, COLOR_RED, 10),
+            children = Text("Github", header_text_config)
+        );
+    });
+    
+    stripe :: inline (name: string, color: Color) {
+        Element(ID(name), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.6)) }}), Rectangle(.{ color = color }));
+    }
+    
+    stripe("TopBorder1", COLOR_TOP_BORDER_5);
+    stripe("TopBorder2", COLOR_TOP_BORDER_4);
+    stripe("TopBorder3", COLOR_TOP_BORDER_3);
+    stripe("TopBorder4", COLOR_TOP_BORDER_2);
+    stripe("TopBorder5", COLOR_TOP_BORDER_1);
+    
+    
+    Element(ID("OuterScrollContainer"),
+        Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
+        Scroll(.{ vertical = true }),
+        Border(.{ betweenChildren = .{2, COLOR_RED} })
+    );
+    
+    if mobile_screen {
+        Basic.log_error("TODO: mobile layout");
+        // LandingPageMobile();
+        // FeatureBlocksMobile();
+        // DeclarativeSyntaxPageMobile();
+        // HighPerformancePageMobile(lerp_value);
+        // RendererPageMobile();
+    } else {
+        landing_page_desktop();
+        feature_blocks_desktop();
+        declarative_syntax_page_desktop();
+        high_performance_page_desktop();
+        renderer_page_desktop();
+        debugger_page_desktop();
     }
 }
 
