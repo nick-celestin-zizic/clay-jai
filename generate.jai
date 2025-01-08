@@ -45,7 +45,7 @@ clay_url :: "https://raw.githubusercontent.com/nicbarker/clay/refs/heads/main/cl
             if name == "Clay_Border" {
                 output_name = "BorderData";
                 return .STOP;
-            } else if begins_with(name, "Clay__Align") || array_find(names_to_remove, name) {
+            } else if begins_with(name, "Clay__Align") || ends_with(name, "Wrapper") || array_find(names_to_remove, name) {
                 decl_flags |= .OMIT_FROM_OUTPUT;
                 return .STOP;
             } else if kind == .DECLARATION && !(decl_flags & .IS_CONST) {

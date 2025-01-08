@@ -520,6 +520,8 @@ HashString :: (key: String, offset: u32, seed: u32) -> ElementId #foreign clay "
 
 OpenTextElement :: (text: String, textConfig: *TextElementConfig) -> void #foreign clay "Clay__OpenTextElement";
 
+GetParentElementId :: () -> u32 #foreign clay "Clay__GetParentElementId";
+
 debugViewHighlightColor: Color #elsewhere clay "Clay__debugViewHighlightColor";
 debugViewWidth: u32 #elsewhere clay "Clay__debugViewWidth";
 
@@ -1111,16 +1113,7 @@ InitializeEphemeralMemory :: (arena: *Arena) -> void #foreign clay "Clay__Initia
 
 InitializePersistentMemory :: (arena: *Arena) -> void #foreign clay "Clay__InitializePersistentMemory";
 
-SizeDistributionType :: enum s32 {
-    SCROLL_CONTAINER     :: 0;
-    RESIZEABLE_CONTAINER :: 1;
-    GROW_CONTAINER       :: 2;
-    CLAY__SIZE_DISTRIBUTION_TYPE_SCROLL_CONTAINER     :: SCROLL_CONTAINER;
-    CLAY__SIZE_DISTRIBUTION_TYPE_RESIZEABLE_CONTAINER :: RESIZEABLE_CONTAINER;
-    CLAY__SIZE_DISTRIBUTION_TYPE_GROW_CONTAINER       :: GROW_CONTAINER;
-}
-
-DistributeSizeAmongChildren :: (xAxis: bool, sizeToDistribute: float, resizableContainerBuffer: int32_tArray, distributionType: SizeDistributionType) -> float #foreign clay "Clay__DistributeSizeAmongChildren";
+CompressChildrenAlongAxis :: (xAxis: bool, totalSizeToDistribute: float, resizableContainerBuffer: int32_tArray) -> void #foreign clay "Clay__CompressChildrenAlongAxis";
 
 SizeContainersAlongAxis :: (xAxis: bool) -> void #foreign clay "Clay__SizeContainersAlongAxis";
 
