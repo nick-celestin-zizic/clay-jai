@@ -1,72 +1,88 @@
+USAGE :: #string _TXT
+usage:
+  show usage:
+    jai build.jai - help
+  for normal compilation:
+    jai build.jai
+  for hotreloading loop:
+    jai build.jai - loop
+  for compiling to an html file:
+    jai build.jai - html
+_TXT
 #run {
     set_build_options_dc(.{do_output=false});
-    ok := true; // it's all going to be ok :)
     
-    ok = make_directory_if_it_does_not_exist("output");
-    assert(ok);
+    assert(make_directory_if_it_does_not_exist("output"));
     
     // TODO: maybe just copy all of the dynamic libraries regardless
     // of platform since this is a toy example that should just work
-    ok = copy_file(join(compiler_get_base_path(), "/modules/SDL/windows/SDL2.dll",, temp), "output/SDL2.dll");
-    assert(ok);
+    assert(copy_file(join(compiler_get_base_path(), "/modules/SDL/windows/SDL2.dll",, temp), "output/SDL2.dll"));
     
     args := get_build_options().compile_time_command_line;
-    if array_find(args, "loop") then run_development_loop();        else
-    if array_find(args, "html") then compile_to_single_html_page(); else {
-        log_error("usage:\n  for hotreloading loop:\n    jai build.jai - loop\n  for compiling to an html file:\n    jai build.jai - html");
+    if args.count == {
+    case 0; compile_workspaces(build_layout_library(true), build_runner(true));
+    case 1; if args[0] == {
+        case "loop"; run_development_loop();
+        case "html"; compile_to_single_html_page();
+        case; log_error(USAGE);
+    }
+    case; log_error(USAGE);
     }
 }
 
-run_development_loop :: () {    
-    set_development_options :: (using options: *Build_Options) {
-        dead_code_elimination  = .NONE;
-        backend                = .X64;
-        text_output_flags      = 0;
-        temporary_storage_size = 1000*1024;
-        set_optimization(options, .VERY_DEBUG);
-    }
+set_common_options :: (using options: *Build_Options, verbose: bool) {
+    output_path            = "output";
+    dead_code_elimination  = .NONE;
+    backend                = .X64;
+    temporary_storage_size = 1000*1024;
+    if !verbose then text_output_flags = 0;
+    set_optimization(options, .VERY_DEBUG);
+}
+
+build_layout_library :: (verbose := false) -> Workspace {
+    w := compiler_create_workspace("Layout Library");
+    using options := get_build_options(w);
     
-    build_layout_library :: () -> Workspace {
-        w := compiler_create_workspace("Layout Library");
-        using options := get_build_options(w);
-        
-        output_type            = .DYNAMIC_LIBRARY;
-        output_path            = "output";
-        output_executable_name = "layout-new";
-        
-        set_development_options(*options);
-        set_build_options(options, w);
-        
-        start_workspace(w, "Check");
-        add_build_file("source/layout/layout.jai", w);
-        return w;
-    }
+    output_type            = .DYNAMIC_LIBRARY;
+    output_executable_name = "layout-new";
     
-    build_runner :: () -> Workspace {
-        w := compiler_create_workspace("Clay Test");
-        using options := get_build_options(w);
-        
-        output_type            = .EXECUTABLE;
-        output_path            = "output";
-        output_executable_name = "jai-test";
-        
-        set_development_options(*options);
-        set_build_options(options, w);
+    set_common_options(*options, verbose);
+    set_build_options(options, w);
     
-        start_workspace(w, "Check");
-        add_build_file("source/main.jai", w);
-        return w;
-    }
+    start_workspace(w, "Check");
+    add_build_file("source/layout/layout.jai", w);
+    return w;
+}
+
+build_runner :: (verbose := false) -> Workspace {
+    w := compiler_create_workspace("Clay Test");
+    using options := get_build_options(w);
     
+    output_type            = .EXECUTABLE;
+    output_executable_name = "jai-test";
+    
+    set_common_options(*options, verbose);
+    set_build_options(options, w);
+
+    start_workspace(w, "Check");
+    add_build_file("source/main.jai", w);
+    return w;
+}
+
+run_development_loop :: () {
+    run_command :: string.[
+        // "remedybg.exe",
+        "output/jai-test.exe",
+    ];
     app: Process;
-    run :: (app: *Process) { ok := create_process(app, "output/jai-test.exe"); assert(ok); }
+    run :: (app: *Process) { assert(create_process(app, ..run_command)); }
     is_running :: (app: *Process) -> bool { ok, result := get_process_result(app, 0); return ok && result.type == .STILL_RUNNING; }
     
     if   compile_workspaces(build_layout_library(), build_runner())
     then run(*app);
     
     watcher: File_Watcher(Process);
-    ok := init(*watcher,
+    assert(init(*watcher,
         (watcher: *File_Watcher(Process), using change: *File_Change, app: *Process) {
             clear :: "\e[1;1H\e[2J";
             log("%0% was modified. Reloading...", clear, full_path);
@@ -79,9 +95,8 @@ run_development_loop :: () {
             if !is_running(app) then run(app);
         },
         *app, events_to_watch = .ALL_EVENTS, verbose = true
-    );                                         assert(ok);
-    ok = add_directories(*watcher, "source");  assert(ok);
-    ok = add_directories(*watcher, "modules"); assert(ok);
+    ));
+    assert(add_directories(*watcher, "source", "modules"));
     
     while true {
         reset_temporary_storage();
