@@ -79,6 +79,8 @@ Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig, $chil
 }
 
 ID :: inline (label: string, index: u32 = 0) -> ElementId { return HashString(.{xx label.count, label.data}, index, 0); }
+
+// for consistency with the all of the other parameters
 Layout :: inline (config: LayoutConfig) -> LayoutConfig { return config; }
 
 Rectangle :: inline (config: RectangleElementConfig) -> ElementConfig {
@@ -106,6 +108,20 @@ Border :: inline (config: BorderElementConfig) -> ElementConfig {
     return .{
         type = .BORDER_CONTAINER,
         config.borderElementConfig = StoreBorderElementConfig(config),
+    };
+}
+
+Floating :: inline (config: FloatingElementConfig) -> ElementConfig {
+    return .{
+        type = .FLOATING_CONTAINER,
+        config.floatingElementConfig = StoreFloatingElementConfig(config),
+    };
+}
+
+Custom :: inline (config: CustomElementConfig) -> ElementConfig {
+    return .{
+        type = .CUSTOM,
+        config.customElementConfig = StoreCustomElementConfig(config),
     };
 }
 
@@ -144,12 +160,6 @@ SizingFixed   :: inline (size: float) -> SizingAxis { return .{type = .FIXED, si
 SizingPercent :: inline (percent: float) -> SizingAxis { return .{type = .PERCENT, size.percent = percent}; }
 
 CornerRadiusAll :: inline (r: float) -> CornerRadius { return .{r, r, r, r}; }
-
-Clay__tArray :: struct {
-	capacity: u32;
-	length: u32;
-	internalArray: *void;
-}
 _JAI;
 
 #import "Basic";
