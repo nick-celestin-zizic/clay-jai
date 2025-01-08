@@ -36,8 +36,6 @@ main :: () {
         render_commands := layout_library.layout_update(*shared_state);
         simp_render(*render_commands);
     }
-    
-    simp_stop();
 }
 
 Library :: struct {
@@ -64,22 +62,35 @@ load_library :: (old_library: Library) -> Library {
     
     // we do this to check that dll is ready to be opened
     // and not still being used by the compiler to generate it
-    dummy_library := load_dynamic_library("layout-new", struct{});
+    dummy_library := dynamic_library_load("layout");
     if !dummy_library return .{};
     
     clay_state := ifx old_library.layout_get_clay_state then old_library.layout_get_clay_state();
     
-    if old_library.handle then unload_dynamic_library(old_library.handle);
-    unload_dynamic_library(dummy_library);
+    if old_library.handle then dynamic_library_unload(old_library.handle);
+    dynamic_library_unload(dummy_library);
     
     for LAYOUT_LIBRARY_FILES atomic_file_replace_or_just_rename_if_destination_file_does_not_exist(it.new, it.old);
     
-    using new_library: Library = ---;
-    handle, procedures = load_dynamic_library("layout", Layout_Library_Procedures);
-    assert(xx handle);
-    assert(xx layout_init);
-    assert(xx layout_update);
-    assert(xx layout_get_clay_state);
+    using new_library: Library;
+    handle = dynamic_library_load("layout-old");
+    if !handle {
+        value, desc := System.get_error_value_and_string();
+        log_error("Could not load layout library: (%) %", value, desc);
+        return .{};
+    }
+    
+    for type_info(Layout_Library_Procedures).members {
+        assert(it.type.type == .PROCEDURE);
+        address := (cast(**void)((cast(*u8) *procedures) + it.offset_in_bytes));
+        address.* = dynamic_library_get_procedure(handle, it.name);
+        if !address.* {
+            dynamic_library_unload(handle);
+            value, desc := System.get_error_value_and_string();
+            log_error("Could not load library procedure %: (%) %", it.name, value, desc);
+            return .{};
+        }
+    }
     
     layout_init(*shared_state, ifx old_library.layout_get_clay_state then *clay_state);
     return new_library;
@@ -89,37 +100,14 @@ load_library :: (old_library: Library) -> Library {
 // this is kind of dumb, but we want to rename all of the files associated with the layout library
 #if OS == .WINDOWS {
     LAYOUT_LIBRARY_FILES :: struct {old, new: string;}.[
-        .{"layout.dll", "layout-new.dll"},
-        .{"layout.exp", "layout-new.exp"},
-        .{"layout.lib", "layout-new.lib"},
-        .{"layout.pdb", "layout-new.pdb"},
+        .{"layout-old.dll", "layout.dll"},
+        .{"layout-old.exp", "layout.exp"},
+        .{"layout-old.lib", "layout.lib"},
+        .{"layout-old.pdb", "layout.pdb"},
     ];
-    
-    load_dynamic_library :: (basename: string, $procedure_table_type: Type) -> *void, procedure_table_type {
-        table: procedure_table_type;
-        
-        handle := Windows.LoadLibraryA(tprint("%.dll\0", basename).data);
-        if !handle return null, table;
-        
-        for type_info(procedure_table_type).members {
-                    // cast(cast(*procedures, *u8) + it.offset_in_bytes, **void)
-                    // (*table.(*u8) + it.offset_in_bytes).(**void)
-            address := (cast(**void)((cast(*u8) *table) + it.offset_in_bytes));
-            address.* = Windows.GetProcAddress(handle, it.name.data);
-            if !address.* {
-                Windows.FreeLibrary(handle);
-                empty_table: procedure_table_type;
-                // log_error("Could not get % from %.dll: %", it.name, basename, System.get_error_string(System.get_error_value()));
-                return null, empty_table;
-            }
-        }
-        
-        return handle, table;
-    }
-    
-    unload_dynamic_library :: inline (library_handle: *void) {
-        Windows.FreeLibrary(library_handle);
-    }
+    dynamic_library_load :: inline (basename: string) -> *void { return Windows.LoadLibraryA(tprint("%.dll\0", basename).data); }
+    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void { return Windows.GetProcAddress(library, temp_c_string(name)); }
+    dynamic_library_unload :: inline (library_handle: *void) { Windows.FreeLibrary(library_handle); }
 } else {
     #assert false "TODO: implement for this OS";
 }
@@ -135,9 +123,11 @@ Hash_Table      :: #import "Hash_Table";
 String          :: #import "String";
 Pool            :: #import "Pool";
 System          :: #import "System";
-Window_Creation :: #import "Window_Creation";
 Windows         :: #import "Windows";
 File_Utilities  :: #import "File_Utilities";
+Window_Creation :: #import "Window_Creation";
+Input           :: #import "Input";
+Simp            :: #import "Simp";
 Clay            :: #import,file "../../module.jai";
 
 simp_start :: () {
@@ -159,42 +149,6 @@ simp_start :: () {
         // cast(cast(*images, *u8) + it.offset_in_bytes, **void).* = *simp_textures[it_index]
         (cast(**void) ((cast(*u8)*images) + it.offset_in_bytes)).* = *simp_textures[it_index];
     }
-}
-
-simp_stop :: () {
-    #if OS == .WINDOWS {
-        Windows.DestroyWindow(simp_window);
-        Simp.the_hdc_for_pixel_format_cloning = null;
-    } else {
-        #assert(false, "TODO: contribute a destroy_window to modules/Window_Creation that implements other OSes");
-    }
-    
-    // this is a very janky way of turning Simp
-    // off in a way that I can just call simp_start()
-    // and have it "just work"
-    
-    // simp_runtime globals
-    Hash_Table.table_reset(*simp_fonts);
-    array_reset(*simp_scissors);
-    for * simp_textures Initialize(it);
-    
-    // simp module globals and context
-    Initialize(*Simp.the_gl_context);
-    array_reset(*Simp.window_infos);
-    free(context.simp);
-    context.simp = null;
-    
-    // simp module globals in font.jai
-    Initialize(*Simp.ft_library);
-    Simp.fonts_initted = false;
-    Simp.page_size_x   = 2048;
-    Simp.page_size_y   = 1024;
-    array_reset(*Simp.loaded_file_fonts);
-    array_reset(*Simp.loaded_memory_fonts);
-    array_reset(*Simp.font_pages);
-    array_reset(*Simp.dynamic_fonts);
-    Pool.release(*Simp.glyph_and_line_pool);
-    Initialize(*Simp.glyph_and_line_pool);
 }
 
 simp_update :: () {
@@ -346,9 +300,6 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
     Simp.immediate_flush();
     Simp.swap_buffers(simp_window);
 }
-
-Simp  :: #import "Simp";
-Input :: #import "Input";
 
 simp_window   : Window_Creation.Window_Type;
 simp_textures : [#run type_info(type_of(shared_state.images)).members.count]Simp.Texture;

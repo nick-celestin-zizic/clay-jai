@@ -39,7 +39,7 @@ build_layout_library :: (verbose := false) -> Workspace {
     using options := get_build_options(w);
     
     output_type            = .DYNAMIC_LIBRARY;
-    output_executable_name = "layout-new";
+    output_executable_name = "layout";
     
     set_common_options(*options, verbose);
     set_build_options(options, w);
