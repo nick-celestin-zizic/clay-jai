@@ -106,35 +106,32 @@ create_layout :: () {
         children = #code {}
     );
     
-    
     stripe("TopBorder1", COLOR_TOP_BORDER_5);
     stripe("TopBorder2", COLOR_TOP_BORDER_4);
     stripe("TopBorder3", COLOR_TOP_BORDER_3);
     stripe("TopBorder4", COLOR_TOP_BORDER_2);
     stripe("TopBorder5", COLOR_TOP_BORDER_1);
     
-    
     Element(ID("OuterScrollContainer"),
         Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
         Scroll(.{ vertical = true }),
-        Border(.{ betweenChildren = .{2, COLOR_RED} })
+        Border(.{ betweenChildren = .{2, COLOR_RED} }),
+        children = #code if mobile_screen {
+            Basic.log_error("TODO: mobile layout");
+            // LandingPageMobile();
+            // FeatureBlocksMobile();
+            // DeclarativeSyntaxPageMobile();
+            // HighPerformancePageMobile(lerp_value);
+            // RendererPageMobile();
+        } else {
+            landing_page_desktop();
+            feature_blocks_desktop();
+            declarative_syntax_page_desktop();
+            high_performance_page_desktop();
+            renderer_page_desktop();
+            debugger_page_desktop();
+        }
     );
-    
-    if mobile_screen {
-        Basic.log_error("TODO: mobile layout");
-        // LandingPageMobile();
-        // FeatureBlocksMobile();
-        // DeclarativeSyntaxPageMobile();
-        // HighPerformancePageMobile(lerp_value);
-        // RendererPageMobile();
-    } else {
-        landing_page_desktop();
-        feature_blocks_desktop();
-        declarative_syntax_page_desktop();
-        high_performance_page_desktop();
-        renderer_page_desktop();
-        debugger_page_desktop();
-    }
 }
 
 #load "desktop.jai";
