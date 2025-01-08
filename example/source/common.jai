@@ -9,8 +9,6 @@ State :: struct {
     animation_counter := 0.0;
     show_debugger     := false;
     
-    requested_next_runtime := false;
-    
     window_width  := 1024 * 1.0;
     window_height := 768 * 1.0;
     

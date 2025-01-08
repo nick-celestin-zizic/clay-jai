@@ -13,11 +13,6 @@ _TXT
     set_build_options_dc(.{do_output=false});
     
     assert(make_directory_if_it_does_not_exist("output"));
-    
-    // TODO: maybe just copy all of the dynamic libraries regardless
-    // of platform since this is a toy example that should just work
-    assert(copy_file(join(compiler_get_base_path(), "/modules/SDL/windows/SDL2.dll",, temp), "output/SDL2.dll"));
-    
     args := get_build_options().compile_time_command_line;
     if args.count == {
     case 0; compile_workspaces(build_layout_library(true), build_runner(true));
