@@ -1,5 +1,4 @@
 #load "common.jai";
-#load "runtime_simp.jai";
 
 main_thread_context: *#Context; // for clay callbacks because they don't have userdata
 shared_state: State; // state that we pass to the layout library
@@ -192,6 +191,17 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
     
     to_math_color :: inline (using color: Clay.Color) -> Math.Vector4 { return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 }; }
     round :: inline (value: float) -> int { return xx (value + 0.5); }
+    push_scissor :: (bound: Clay.BoundingBox) {
+        scissor := type_of(simp_scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.height} };
+        array_add(*simp_scissors, scissor);
+        Simp.set_scissor(scissor.start, scissor.end);
+    }
+    pop_scissor :: () {
+        pop(*simp_scissors);
+        if simp_scissors 
+        then Simp.set_scissor(simp_scissors[simp_scissors.count-1].start, simp_scissors[simp_scissors.count-1].end);
+        else Simp.set_scissor(0, 0, xx shared_state.window_width, xx shared_state.window_height);
+    }
     
     for j: 0..commands.length-1 {
         command := commands.internalArray[j];
@@ -202,20 +212,12 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             text := string.{xx command.text.length, xx command.text.chars };
             font := simp_get_font(config.fontId, config.fontSize);
             
-            // logx(cast(float) config.fontSize - bound.height);
+            text_width := cast(float) Simp.prepare_text(font, text);
+            if text_width > bound.width        then push_scissor(bound);
+            defer if text_width > bound.width  then pop_scissor();
             
-            // :JankyFontStuff
-            janky_font_offset := config.fontSize * 0.9;
-            Simp.set_shader_for_text();
-            Simp.draw_text(font, xx (bound.x), xx (bound.y+janky_font_offset), text, to_math_color(config.textColor));
-            
-            // Simp.set_shader_for_color(true);
-            // Simp.immediate_quad(
-            //     bound.x, bound.y,
-            //     bound.x + bound.width,
-            //     bound.y + bound.height,
-            //     .{0, 0, 0, 1},
-            // );
+            text_x, text_y := getrect_text_origin(font, bound, text_width);
+            Simp.draw_prepared_text(font, xx text_x, xx (text_y + bound.height/2), to_math_color(config.textColor));
         }
         case .IMAGE; {
             texture := (cast(*Simp.Texture)command.config.imageElementConfig.imageData);
@@ -227,17 +229,8 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
                 .{1, 1, 1, 1},
             );
         }
-        case .SCISSOR_START; {
-            scissor := type_of(simp_scissors.data.*).{ .{bound.x, bound.y}, .{bound.x+bound.width, bound.y+bound.height} };
-            array_add(*simp_scissors, scissor);
-            Simp.set_scissor(scissor.start, scissor.end);
-        }
-        case .SCISSOR_END; {
-            pop(*simp_scissors);
-            if simp_scissors 
-            then Simp.set_scissor(simp_scissors[simp_scissors.count-1].start, simp_scissors[simp_scissors.count-1].end);
-            else Simp.set_scissor(0, 0, xx shared_state.window_width, xx shared_state.window_height);
-        }
+        case .SCISSOR_START; push_scissor(bound);
+        case .SCISSOR_END; pop_scissor();
         case .RECTANGLE; {
             config := command.config.rectangleElementConfig;
             Simp.set_shader_for_color(true);
@@ -381,6 +374,37 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
 
 
 // this stuff is taken from GetRect
+
+
+getrect_default_text_baseline :: (font: *Simp.Dynamic_Font, height: float) -> float {
+    assert(xx font);
+    // Just a heuristic to try to line up fonts, kind of.
+    // Could probably be better.
+    active_height := font.character_height * 0.55;
+    pad := height - active_height;
+    return Math.floor(pad * 0.5);
+}
+
+getrect_text_origin :: (font: *Simp.Dynamic_Font, r: Clay.BoundingBox, text_width: float) -> (x: float, y: float) {
+    if !font return 0, 0;  // :NullFont
+
+    // theme.font is ignored, so that people can pass in a substituted font.
+    // However, other properties like alignment, baseline, etc are used here.
+
+    x := r.x;
+
+    // y := text_baseline(font, y, y+r.h);
+    vert := getrect_default_text_baseline(font, r.height);
+
+    y := r.y + vert;
+
+    // Due to atlassed texture rendering, we draw text at integer coordinates currently.
+    // If we wish to change this, don't round! (Or round to whatever subpixel resolution
+    // we generate atlas alternatives at. etc.)
+    x = Math.floor(x + .5);
+    y = Math.floor(y + .5);
+    return x, y;
+}
 
 getrect_global_rounding_radius_in_pixels := 9.0;
 getrect_global_frame_thickness_in_pixels := 4.0;
