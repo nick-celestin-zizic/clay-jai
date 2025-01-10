@@ -100,17 +100,18 @@ create_layout :: () {
         );
     });
     
-    stripe :: (name, color) => Element(ID(name),
-        Layout(.{ sizing = .{ SizingGrow(), SizingFixed(xx hu(0.65)) }}),
-        Rectangle(.{ color = color }),
-        children = #code {}
-    );
+    h  : float = xx hu(0.65);
+    id : u32 = 1;
+    stripe :: (color: Color) #expand {
+        Element(ID("TopBorder", id), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(h) }}), Rectangle(.{ color = color }), );
+        id += 1;
+    }
     
-    stripe("TopBorder1", COLOR_TOP_BORDER_5);
-    stripe("TopBorder2", COLOR_TOP_BORDER_4);
-    stripe("TopBorder3", COLOR_TOP_BORDER_3);
-    stripe("TopBorder4", COLOR_TOP_BORDER_2);
-    stripe("TopBorder5", COLOR_TOP_BORDER_1);
+    stripe(COLOR_TOP_BORDER_5);
+    stripe(COLOR_TOP_BORDER_4);
+    stripe(COLOR_TOP_BORDER_3);
+    stripe(COLOR_TOP_BORDER_2);
+    stripe(COLOR_TOP_BORDER_1);
     
     Element(ID("OuterScrollContainer"),
         Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
@@ -139,8 +140,8 @@ create_layout :: () {
 active_renderer_index : int = 0;
 
 #load "../common.jai";
-Basic         :: #import "Basic";
-Math          :: #import "Math";
+using,only(.["+", "-", "*", "/"]) Basic :: #import "Basic";
+using,only(.["+", "-", "*", "/"]) Math  :: #import "Math";
 Compiler      :: #import "Compiler";
 Program_Print :: #import "Program_Print";
 Remap_Context :: #import "Remap_Context"(VERBOSE=false);
@@ -149,11 +150,22 @@ Clay          :: #import,file "../../../module.jai";
 using shared_state: *State;
 
 #program_export "update"
-update : type_of(Layout_Library_Procedures.update) : (state: *State) -> Clay.RenderCommandArray {
+update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
     push_context,defer_pop Remap_Context.remap_context();
     using Clay;
     Basic.assert(xx state);
     shared_state = state;
+    if !clay_context {
+        min_mem_size := MinMemorySize();
+        clay_memory  := Arena.{
+            memory    = Basic.alloc(min_mem_size),
+            capacity  = min_mem_size
+        };
+        clay_context = Initialize(clay_memory, .{ window_width, window_height }, handle_error);
+    }
+    
+    SetCurrentContext(clay_context);
+    SetMeasureTextFunction(measure_text);
     
     mouseWheelX := mouse_wheel_delta.x;
     mouseWheelY := mouse_wheel_delta.y;
@@ -167,28 +179,26 @@ update : type_of(Layout_Library_Procedures.update) : (state: *State) -> Clay.Ren
     // });
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });
-    if (!left_mouse_down) {
-        scrollbar_data.mouse_down = false;
-    }
+    if !left_mouse_down then scrollbar_data.mouse_down = false;
     
-    if (left_mouse_down && !scrollbar_data.mouse_down && PointerOver(ID("ScrollBar"))) {
+    if left_mouse_down && !scrollbar_data.mouse_down && PointerOver(ID("ScrollBar")) {
         container := GetScrollContainerData(ID("OuterScrollContainer"));
         scrollbar_data.click_origin    = mouse_position;
         scrollbar_data.position_origin = cast,force(Math.Vector2) container.scrollPosition.*;
         scrollbar_data.mouse_down      = true;
-    } else if (scrollbar_data.mouse_down) {
-        container := GetScrollContainerData(ID("OuterScrollContainer"));
-        if (container.contentDimensions.height > 0) {
+    } else if scrollbar_data.mouse_down {
+        using container := GetScrollContainerData(ID("OuterScrollContainer"));
+        if contentDimensions.height > 0 {
             ratio := Vector2.{
-                container.contentDimensions.width / container.scrollContainerDimensions.width,
-                container.contentDimensions.height / container.scrollContainerDimensions.height,
+                contentDimensions.width / scrollContainerDimensions.width,
+                contentDimensions.height / scrollContainerDimensions.height,
             };
             
-            if   container.config.vertical
-            then container.scrollPosition.y = scrollbar_data.position_origin.y + (scrollbar_data.click_origin.y - mouse_position.y) * ratio.y;
+            if   config.vertical
+            then scrollPosition.y = scrollbar_data.position_origin.y + (scrollbar_data.click_origin.y - mouse_position.y) * ratio.y;
             
-            if   container.config.horizontal
-            then container.scrollPosition.x = scrollbar_data.position_origin.x + (scrollbar_data.click_origin.x - mouse_position.x) * ratio.x;
+            if   config.horizontal
+            then scrollPosition.x = scrollbar_data.position_origin.x + (scrollbar_data.click_origin.x - mouse_position.x) * ratio.x;
         }
     }
     
@@ -196,28 +206,9 @@ update : type_of(Layout_Library_Procedures.update) : (state: *State) -> Clay.Ren
     animation_counter += delta_time;
     
     mouse_wheel_speed :: 5.0;
-    using,except(Vector2) Math;
     UpdateScrollContainers(true, cast,force(Clay.Vector2)(mouse_wheel_delta*mouse_wheel_speed), delta_time);
     BeginLayout();
     create_layout();
     show_debugger = IsDebugModeEnabled(); // in case we hit the little close button in the debugger window
     return EndLayout();
-}
-
-// this stuff is pretty ugly, would be nice if all of Clay's globals where in a single struct, but we have to 
-// do this to reload the state of the library properly.
-
-#program_export "init"
-init : type_of(Layout_Library_Procedures.init) : (using state: *State) {
-    push_context,defer_pop Remap_Context.remap_context();
-    if !clay_context {
-        min_mem_size := Clay.MinMemorySize();
-        clay_memory  := Clay.Arena.{
-            memory    = Basic.alloc(min_mem_size),
-            capacity  = min_mem_size
-        };
-        clay_context = Clay.Initialize(clay_memory, .{ window_width, window_height }, handle_error);
-    }
-    Clay.SetCurrentContext(clay_context);
-    Clay.SetMeasureTextFunction(measure_text);
 }

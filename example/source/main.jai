@@ -40,7 +40,7 @@ main :: () {
 
 Library :: struct {
     handle: *void;
-    using procedures: Layout_Library_Procedures;
+    update: Layout_Update_Procedure;
 }
 
 load_library :: (old_library: Library) -> Library {
@@ -78,19 +78,14 @@ load_library :: (old_library: Library) -> Library {
         return .{};
     }
     
-    for type_info(Layout_Library_Procedures).members {
-        assert(it.type.type == .PROCEDURE);
-        address := (cast(**void)((cast(*u8) *procedures) + it.offset_in_bytes));
-        address.* = dynamic_library_get_procedure(handle, it.name);
-        if !address.* {
-            dynamic_library_unload(handle);
-            value, desc := System.get_error_value_and_string();
-            log_error("Could not load library procedure %: (%) %", it.name, value, desc);
-            return .{};
-        }
+    update = dynamic_library_get_procedure(handle, "update");
+    if !update {
+        value, desc := System.get_error_value_and_string();
+        dynamic_library_unload(handle);
+        log_error("Could not load library update procedure: (%) %", value, desc);
+        return .{};
     }
     
-    init(*shared_state);
     return new_library;
 }
 

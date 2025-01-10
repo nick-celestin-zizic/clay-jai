@@ -47,11 +47,7 @@ State :: struct {
     return builder_to_string(*sb);;
 }
 
-
-Layout_Library_Procedures :: struct {
-    init   : (*State) -> ();
-    update : (*State) -> Clay.RenderCommandArray;
-}
+Layout_Update_Procedure :: #type (*State) -> Clay.RenderCommandArray;
 
 logx :: ($code: Code) #expand {
     result := #insert code;
