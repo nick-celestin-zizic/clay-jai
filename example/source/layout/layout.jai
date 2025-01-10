@@ -148,8 +148,8 @@ Clay          :: #import,file "../../../module.jai";
 
 using shared_state: *State;
 
-#program_export "layout_update"
-layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *State) -> Clay.RenderCommandArray {
+#program_export "update"
+update : type_of(Layout_Library_Procedures.update) : (state: *State) -> Clay.RenderCommandArray {
     push_context,defer_pop Remap_Context.remap_context();
     using Clay;
     Basic.assert(xx state);
@@ -207,133 +207,17 @@ layout_update : type_of(Layout_Library_Procedures.layout_update) : (state: *Stat
 // this stuff is pretty ugly, would be nice if all of Clay's globals where in a single struct, but we have to 
 // do this to reload the state of the library properly.
 
-#program_export "layout_init"
-layout_init : type_of(Layout_Library_Procedures.layout_init) : (using state: *State, clay_state: *Clay_State) {
+#program_export "init"
+init : type_of(Layout_Library_Procedures.init) : (using state: *State) {
     push_context,defer_pop Remap_Context.remap_context();
-    if clay_state {
-        Clay.pointerInfo = clay_state.pointerInfo;
-        Clay.layoutDimensions = clay_state.layoutDimensions;
-        Clay.dynamicElementIndexBaseHash = clay_state.dynamicElementIndexBaseHash;
-        Clay.dynamicElementIndex = clay_state.dynamicElementIndex;
-        Clay.debugModeEnabled = clay_state.debugModeEnabled;
-        Clay.disableCulling = clay_state.disableCulling;
-        Clay.externalScrollHandlingEnabled = clay_state.externalScrollHandlingEnabled;
-        Clay.debugSelectedElementId = clay_state.debugSelectedElementId;
-        Clay.debugViewWidth = clay_state.debugViewWidth;
-        Clay.debugViewHighlightColor = clay_state.debugViewHighlightColor;
-    //     Clay.debugMaxElementsLatch = clay_state.debugMaxElementsLatch;
-        Clay.generation = clay_state.generation;
-        Clay.arenaResetOffset = clay_state.arenaResetOffset;
-        Clay.internalArena = clay_state.internalArena;
-        Clay.layoutElements = clay_state.layoutElements;
-        Clay.renderCommands = clay_state.renderCommands;
-        Clay.openLayoutElementStack = clay_state.openLayoutElementStack;
-        Clay.layoutElementChildren = clay_state.layoutElementChildren;
-        Clay.layoutElementChildrenBuffer = clay_state.layoutElementChildrenBuffer;
-        Clay.textElementData = clay_state.textElementData;
-        Clay.imageElementPointers = clay_state.imageElementPointers;
-        Clay.reusableElementIndexBuffer = clay_state.reusableElementIndexBuffer;
-        Clay.layoutElementClipElementIds = clay_state.layoutElementClipElementIds;
-        Clay.layoutConfigs = clay_state.layoutConfigs;
-        Clay.elementConfigBuffer = clay_state.elementConfigBuffer;
-        Clay.elementConfigs = clay_state.elementConfigs;
-        Clay.rectangleElementConfigs = clay_state.rectangleElementConfigs;
-        Clay.textElementConfigs = clay_state.textElementConfigs;
-        Clay.imageElementConfigs = clay_state.imageElementConfigs;
-        Clay.floatingElementConfigs = clay_state.floatingElementConfigs;
-        Clay.scrollElementConfigs = clay_state.scrollElementConfigs;
-        Clay.customElementConfigs = clay_state.customElementConfigs;
-        Clay.borderElementConfigs = clay_state.borderElementConfigs;
-        Clay.layoutElementIdStrings = clay_state.layoutElementIdStrings;
-        Clay.wrappedTextLines = clay_state.wrappedTextLines;
-        Clay.layoutElementTreeNodeArray1 = clay_state.layoutElementTreeNodeArray1;
-        Clay.layoutElementTreeRoots = clay_state.layoutElementTreeRoots;
-        Clay.layoutElementsHashMapInternal = clay_state.layoutElementsHashMapInternal;
-        Clay.layoutElementsHashMap = clay_state.layoutElementsHashMap;
-        Clay.measureTextHashMapInternal = clay_state.measureTextHashMapInternal;
-        Clay.measureTextHashMapInternalFreeList = clay_state.measureTextHashMapInternalFreeList;
-        Clay.measureTextHashMap = clay_state.measureTextHashMap;
-        Clay.measuredWords = clay_state.measuredWords;
-        Clay.measuredWordsFreeList = clay_state.measuredWordsFreeList;
-        Clay.openClipElementStack = clay_state.openClipElementStack;
-        Clay.pointerOverIds = clay_state.pointerOverIds;
-        Clay.scrollContainerDatas = clay_state.scrollContainerDatas;
-        Clay.treeNodeVisited = clay_state.treeNodeVisited;
-        Clay.dynamicStringData = clay_state.dynamicStringData;
-        Clay.debugElementData = clay_state.debugElementData;
-        Clay.MeasureText = clay_state.MeasureText; // for some reason we still have to do ClaySetMeasureTextFunction() for it to work :/
-        Clay.QueryScrollOffset = clay_state.QueryScrollOffset;
-        
-        Clay.SetMeasureTextFunction(measure_text);
-        // return clay_state.internalArena.memory, clay_state.internalArena.capacity;
-    } else {
+    if !clay_context {
         min_mem_size := Clay.MinMemorySize();
         clay_memory  := Clay.Arena.{
             memory    = Basic.alloc(min_mem_size),
             capacity  = min_mem_size
         };
-        Clay.Initialize(clay_memory, .{ window_width, window_height }, handle_error);
-        Clay.SetMeasureTextFunction(measure_text);
-        // return clay_memory.memory, min_mem_size;
+        clay_context = Clay.Initialize(clay_memory, .{ window_width, window_height }, handle_error);
     }
+    Clay.SetCurrentContext(clay_context);
+    Clay.SetMeasureTextFunction(measure_text);
 }
-
-#program_export "layout_get_clay_state"
-layout_get_clay_state : type_of(Layout_Library_Procedures.layout_get_clay_state) : () -> Clay_State {
-    push_context,defer_pop Remap_Context.remap_context();
-    clay_state: Clay_State = ---;
-    clay_state.pointerInfo = Clay.pointerInfo;
-    clay_state.layoutDimensions = Clay.layoutDimensions;
-    clay_state.dynamicElementIndexBaseHash = Clay.dynamicElementIndexBaseHash;
-    clay_state.dynamicElementIndex = Clay.dynamicElementIndex;
-    clay_state.debugModeEnabled = Clay.debugModeEnabled;
-    clay_state.disableCulling = Clay.disableCulling;
-    clay_state.externalScrollHandlingEnabled = Clay.externalScrollHandlingEnabled;
-    clay_state.debugSelectedElementId = Clay.debugSelectedElementId;
-    clay_state.debugViewWidth = Clay.debugViewWidth;
-    clay_state.debugViewHighlightColor = Clay.debugViewHighlightColor;
-    // clay_state.debugMaxElementsLatch = Clay.debugMaxElementsLatch;
-    clay_state.generation = Clay.generation;
-    clay_state.arenaResetOffset = Clay.arenaResetOffset;
-    clay_state.internalArena = Clay.internalArena;
-    clay_state.layoutElements = Clay.layoutElements;
-    clay_state.renderCommands = Clay.renderCommands;
-    clay_state.openLayoutElementStack = Clay.openLayoutElementStack;
-    clay_state.layoutElementChildren = Clay.layoutElementChildren;
-    clay_state.layoutElementChildrenBuffer = Clay.layoutElementChildrenBuffer;
-    clay_state.textElementData = Clay.textElementData;
-    clay_state.imageElementPointers = Clay.imageElementPointers;
-    clay_state.reusableElementIndexBuffer = Clay.reusableElementIndexBuffer;
-    clay_state.layoutElementClipElementIds = Clay.layoutElementClipElementIds;
-    clay_state.layoutConfigs = Clay.layoutConfigs;
-    clay_state.elementConfigBuffer = Clay.elementConfigBuffer;
-    clay_state.elementConfigs = Clay.elementConfigs;
-    clay_state.rectangleElementConfigs = Clay.rectangleElementConfigs;
-    clay_state.textElementConfigs = Clay.textElementConfigs;
-    clay_state.imageElementConfigs = Clay.imageElementConfigs;
-    clay_state.floatingElementConfigs = Clay.floatingElementConfigs;
-    clay_state.scrollElementConfigs = Clay.scrollElementConfigs;
-    clay_state.customElementConfigs = Clay.customElementConfigs;
-    clay_state.borderElementConfigs = Clay.borderElementConfigs;
-    clay_state.layoutElementIdStrings = Clay.layoutElementIdStrings;
-    clay_state.wrappedTextLines = Clay.wrappedTextLines;
-    clay_state.layoutElementTreeNodeArray1 = Clay.layoutElementTreeNodeArray1;
-    clay_state.layoutElementTreeRoots = Clay.layoutElementTreeRoots;
-    clay_state.layoutElementsHashMapInternal = Clay.layoutElementsHashMapInternal;
-    clay_state.layoutElementsHashMap = Clay.layoutElementsHashMap;
-    clay_state.measureTextHashMapInternal = Clay.measureTextHashMapInternal;
-    clay_state.measureTextHashMapInternalFreeList = Clay.measureTextHashMapInternalFreeList;
-    clay_state.measureTextHashMap = Clay.measureTextHashMap;
-    clay_state.measuredWords = Clay.measuredWords;
-    clay_state.measuredWordsFreeList = Clay.measuredWordsFreeList;
-    clay_state.openClipElementStack = Clay.openClipElementStack;
-    clay_state.pointerOverIds = Clay.pointerOverIds;
-    clay_state.scrollContainerDatas = Clay.scrollContainerDatas;
-    clay_state.treeNodeVisited = Clay.treeNodeVisited;
-    clay_state.dynamicStringData = Clay.dynamicStringData;
-    clay_state.debugElementData = Clay.debugElementData;
-    clay_state.MeasureText = Clay.MeasureText;
-    clay_state.QueryScrollOffset = Clay.QueryScrollOffset;
-    return clay_state;
-}
-

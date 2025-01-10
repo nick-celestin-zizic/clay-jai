@@ -33,7 +33,7 @@ main :: () {
         then layout_library = new_library;
         
         simp_update();
-        render_commands := layout_library.layout_update(*shared_state);
+        render_commands := layout_library.update(*shared_state);
         simp_render(*render_commands);
     }
 }
@@ -65,8 +65,6 @@ load_library :: (old_library: Library) -> Library {
     dummy_library := dynamic_library_load("layout");
     if !dummy_library return .{};
     
-    clay_state := ifx old_library.layout_get_clay_state then old_library.layout_get_clay_state();
-    
     if old_library.handle then dynamic_library_unload(old_library.handle);
     dynamic_library_unload(dummy_library);
     
@@ -92,13 +90,14 @@ load_library :: (old_library: Library) -> Library {
         }
     }
     
-    layout_init(*shared_state, ifx old_library.layout_get_clay_state then *clay_state);
+    init(*shared_state);
     return new_library;
 }
 
 
 // this is kind of dumb, but we want to rename all of the files associated with the layout library
 #if OS == .WINDOWS {
+    Windows :: #import "Windows";
     LAYOUT_LIBRARY_FILES :: struct {old, new: string;}.[
         .{"layout-old.dll", "layout.dll"},
         .{"layout-old.exp", "layout.exp"},
@@ -109,7 +108,14 @@ load_library :: (old_library: Library) -> Library {
     dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void { return Windows.GetProcAddress(library, temp_c_string(name)); }
     dynamic_library_unload :: inline (library_handle: *void) { Windows.FreeLibrary(library_handle); }
 } else {
-    #assert false "TODO: implement for this OS";
+    LAYOUT_LIBRARY_FILES :: struct {old, new: string;}.[
+        .{"layout-old.so", "layout.so"},
+    ];
+    Posix :: #import "Posix";
+    dynamic_library_load :: inline (basename: string) -> *void { return Posix.dlopen(tprint("%.so\0", basename).data, Posix.RTLD_LOCAL); }
+    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void { return Posix.dlsym(library, temp_c_string(name)); }
+    dynamic_library_unload :: Posix.dlclose;
+    // #assert false "TODO: implement for this OS";
 }
 
 
@@ -123,7 +129,6 @@ Hash_Table      :: #import "Hash_Table";
 String          :: #import "String";
 Pool            :: #import "Pool";
 System          :: #import "System";
-Windows         :: #import "Windows";
 File_Utilities  :: #import "File_Utilities";
 Window_Creation :: #import "Window_Creation";
 Input           :: #import "Input";
@@ -370,7 +375,7 @@ simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Cl
             line_text_width += (glyph.width + cast(float)glyph.offset_x);
         }
     }
-    log("\n\n");
+    // log("\n\n");
     max_text_width = ifx max_text_width > line_text_width then max_text_width else line_text_width;
 
     text_size.width = max_text_width;

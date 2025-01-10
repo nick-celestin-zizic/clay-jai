@@ -5,6 +5,8 @@ State :: struct {
         mouse_down      : bool;
     };
     
+    clay_context: *Clay.Context;
+    
     should_quit       := false;
     animation_counter := 0.0;
     show_debugger     := false;
@@ -47,79 +49,8 @@ State :: struct {
 
 
 Layout_Library_Procedures :: struct {
-    layout_get_clay_state : () -> Clay_State;
-    layout_init           : (*State, *Clay_State) -> ();
-    layout_update         : (*State) -> Clay.RenderCommandArray;
-}
-
-Clay_State :: struct {
-    pointerInfo: Clay.PointerData;
-    layoutDimensions: Clay.Dimensions;
-    dynamicElementIndexBaseHash: Clay.ElementId;
-    dynamicElementIndex: u32;
-    debugModeEnabled: bool;
-    disableCulling: bool;
-    externalScrollHandlingEnabled: bool;
-    debugSelectedElementId: u32;
-    
-    generation: u32;
-    arenaResetOffset: u64;
-    internalArena: Clay.Arena;
-    
-    // Layout Elements / Render Commands
-    layoutElements: Clay.LayoutElementArray;
-    renderCommands: Clay.RenderCommandArray;
-    openLayoutElementStack: Clay.int32_tArray;
-    layoutElementChildren: Clay.int32_tArray;
-    layoutElementChildrenBuffer: Clay.int32_tArray;
-    textElementData: Clay.TextElementDataArray;
-    imageElementPointers: Clay.LayoutElementPointerArray;
-    reusableElementIndexBuffer: Clay.int32_tArray;
-    layoutElementClipElementIds: Clay.int32_tArray;
-    
-    // Configs
-    layoutConfigs: Clay.LayoutConfigArray;
-    elementConfigBuffer: Clay.ElementConfigArray;
-    elementConfigs: Clay.ElementConfigArray;
-    rectangleElementConfigs: Clay.RectangleElementConfigArray;
-    textElementConfigs: Clay.TextElementConfigArray;
-    imageElementConfigs: Clay.ImageElementConfigArray;
-    floatingElementConfigs: Clay.FloatingElementConfigArray;
-    scrollElementConfigs: Clay.ScrollElementConfigArray;
-    customElementConfigs: Clay.CustomElementConfigArray;
-    borderElementConfigs: Clay.BorderElementConfigArray;
-    
-    // Misc Data Structures
-    layoutElementIdStrings: Clay.StringArray;
-    wrappedTextLines: Clay.WrappedTextLineArray;
-    layoutElementTreeNodeArray1: Clay.LayoutElementTreeNodeArray;
-    layoutElementTreeRoots: Clay.LayoutElementTreeRootArray;
-    layoutElementsHashMapInternal: Clay.LayoutElementHashMapItemArray;
-    layoutElementsHashMap: Clay.int32_tArray;
-    measureTextHashMapInternal: Clay.MeasureTextCacheItemArray;
-    measureTextHashMapInternalFreeList: Clay.int32_tArray;
-    measureTextHashMap: Clay.int32_tArray;
-    measuredWords: Clay.MeasuredWordArray;
-    measuredWordsFreeList: Clay.int32_tArray;
-    openClipElementStack: Clay.int32_tArray;
-    pointerOverIds: Clay.ElementIdArray;
-    scrollContainerDatas: Clay.ScrollContainerDataInternalArray;
-    treeNodeVisited: Clay.BoolArray;
-    dynamicStringData: Clay.CharArray;
-    debugElementData: Clay.DebugElementDataArray;
-    
-    MeasureText: #type (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
-    QueryScrollOffset: #type (elementId: u32) -> Clay.Vector2 #c_call;
-    
-    // other globals that are not in the globals block
-    debugViewHighlightColor: Clay.Color;
-    debugViewWidth: u32;
-    warningsEnabled: bool;
-    maxElementCount: s32;
-    maxMeasureTextCacheWordCount: s32;
-    errorHandler: Clay.ErrorHandler;
-    booleanWarnings: Clay.BooleanWarnings;
-    warnings: Clay.WarningArray;
+    init   : (*State) -> ();
+    update : (*State) -> Clay.RenderCommandArray;
 }
 
 logx :: ($code: Code) #expand {
