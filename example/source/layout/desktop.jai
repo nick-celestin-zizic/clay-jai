@@ -1,8 +1,6 @@
 landing_page_desktop :: () {
     using Clay;
     
-    // Basic.log("%", cast(int) window_width);
-    // logx(window_width);
     Element(ID("LandingPage1Desktop"),
         Layout(.{
             sizing = .{ width = SizingGrow(), height = SizingFit(.{ min = window_height - hu(4) }) },

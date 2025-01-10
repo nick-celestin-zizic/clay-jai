@@ -18,7 +18,6 @@ COLOR_BLOB_BORDER_3 :: Clay.Color.{225, 138, 50, 255};
 COLOR_BLOB_BORDER_4 :: Clay.Color.{236, 159, 70, 255};
 COLOR_BLOB_BORDER_5 :: Clay.Color.{240, 189, 100, 255};
 
-
 // They're calling it wuhumu oriented programming!
 // wu (width   units) is one percent of the width
 // hu (height  units) is one percent of the height
@@ -28,8 +27,6 @@ k  :: 0.01;
 wu :: inline (value: $T) -> T { return cast(T) (value * window_width  * k); }
 hu :: inline (value: $T) -> T { return cast(T) (value * window_height * k); }
 mu :: inline (value: $T) -> T { return xx ((cast(float) Basic.min(window_width, window_height)) * k * value); }
-// wu :: inline (value: $T) -> T { return mu(value); }
-// hu :: inline (value: $T) -> T { return mu(value); }
 
 create_layout :: () {
     using Clay;
@@ -100,8 +97,7 @@ create_layout :: () {
         );
     });
     
-    h  : float = xx hu(0.65);
-    id : u32 = 1;
+    h, id := cast(float) hu(0.65), cast(u32) 1;
     stripe :: (color: Color) #expand {
         Element(ID("TopBorder", id), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(h) }}), Rectangle(.{ color = color }), );
         id += 1;
@@ -113,7 +109,8 @@ create_layout :: () {
     stripe(COLOR_TOP_BORDER_2);
     stripe(COLOR_TOP_BORDER_1);
     
-    Element(ID("OuterScrollContainer"),
+    outer_scroll_container := ID("OuterScrollContainer");
+    Element(outer_scroll_container,
         Layout(.{ sizing = .{ SizingGrow(), SizingGrow() }, layoutDirection =  .TOP_TO_BOTTOM }),
         Scroll(.{ vertical = true }),
         Border(.{ betweenChildren = .{2, COLOR_RED} }),
@@ -132,6 +129,30 @@ create_layout :: () {
             renderer_page_desktop();
             debugger_page_desktop();
         }
+    );
+    
+    scroll_bar  := ID("ScrollBar");
+    scroll_data := GetScrollContainerData(outer_scroll_container);
+    scrollbar_color := Color.{225, 138, 50, 120};
+    if scrollbar_data.mouse_down
+    then scrollbar_color = .{225, 138, 50, 200};
+    else if PointerOver(scroll_bar)
+    then scrollbar_color = .{225, 138, 50, 160};
+    
+    scroll_height := scroll_data.scrollContainerDimensions.height - 12;
+    offset := cast(float) mu(.5);
+    Element(scroll_bar,
+        Layout(.{
+            sizing = .{ SizingFixed(xx wu(0.65)), SizingFixed((scroll_height / scroll_data.contentDimensions.height) * scroll_height)} }
+        ),
+        Floating(.{
+            offset     = .{ x = -offset, y = -(scroll_data.scrollPosition.y / scroll_data.contentDimensions.height) * scroll_height + offset },
+            zIndex     = 1,
+            parentId   = outer_scroll_container.id,
+            attachment = .{ element = .RIGHT_TOP, parent = .RIGHT_TOP }}
+        ),
+        Rectangle(.{ cornerRadius = CornerRadiusAll(5), color = scrollbar_color }),
+        children = #code {}
     );
 }
 
@@ -166,19 +187,14 @@ update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
     
     SetCurrentContext(clay_context);
     SetMeasureTextFunction(measure_text);
-    
-    mouseWheelX := mouse_wheel_delta.x;
-    mouseWheelY := mouse_wheel_delta.y;
-    
     SetDebugModeEnabled(show_debugger);
-    
+    SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
+    SetLayoutDimensions(.{ window_width, window_height });
     // mouse_position := Math.Vector2.{R.GetMousePosition().x, R.GetMousePosition().y};
     // SetQueryScrollOffsetFunction((id: u32) -> Vector2 #c_call {
     //     using shared_state;
     //     return cast,force(Clay.Vector2) (mouse_wheel_delta);
     // });
-    SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
-    SetLayoutDimensions(.{ window_width, window_height });
     if !left_mouse_down then scrollbar_data.mouse_down = false;
     
     if left_mouse_down && !scrollbar_data.mouse_down && PointerOver(ID("ScrollBar")) {
