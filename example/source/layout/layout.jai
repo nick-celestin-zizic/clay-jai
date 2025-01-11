@@ -29,8 +29,6 @@ hu :: inline (value: $T) -> T { return cast(T) (value * window_height * k); }
 mu :: inline (value: $T) -> T { return xx ((cast(float) Basic.min(window_width, window_height)) * k * value); }
 
 create_layout :: () {
-    using Clay;
-    
     mobile_screen := window_width < window_height;
     
     Element(ID("OuterContainer"),
@@ -57,49 +55,20 @@ create_layout :: () {
 
         { Element(ID("Spacer"), Layout(.{ sizing = .{ width = SizingGrow() } }) ); }
         
-        header_button_pad := cast(u16) wu(.8);
+        layout := Layout(.{ padding = .{ cast(u16) wu(.8), 0 } });
         if !mobile_screen {
-            Element(ID("LinkExamplesOuter"),
-                Layout(.{ padding = .{ header_button_pad, 0 } }),
-                Rectangle(.{/*link = ("https://github.com/nicbarker/clay/tree/main/examples"),*/ color = .{} }),
-                children = Text("Examples", header_text_config)
-            );
-
-            Element(ID("LinkDocsOuter"),
-                Layout(.{ padding = .{ header_button_pad, 0 } }),
-                Rectangle(.{/*link = ("https://github.com/nicbarker/clay/blob/main/README.md"),*/ color = .{} }),
-                children = Text("Docs", header_text_config)
-            );
+            link_button(ID("LinkDocsOuter"), "Docs", "https://github.com/nicbarker/clay/blob/main/README.md", header_text_config, layout);
+            link_button(ID("LinkExamplesOuter"), "Examples", "https://github.com/nicbarker/clay/tree/main/examples", header_text_config, layout);
         }
         
-        discord_link_id := ID("DiscordLink");
-        Element(discord_link_id,
-            Layout(.{ padding = .{ header_button_pad, 0 } }),
-            Rectangle(.{
-                cornerRadius = CornerRadiusAll(10),
-                // link = ("https://discord.gg/b4FTWkxdvT"),
-                color = ifx PointerOver(discord_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
-            }),
-            BorderOutsideRadius(2, COLOR_RED, 10),
-            children = Text("Discord", header_text_config)
-        );
-        
-        github_link_id := ID("GithubLink");
-        Element(github_link_id,
-            Layout(.{ padding = .{header_button_pad, 0 } }),
-            Rectangle(.{
-                cornerRadius = CornerRadiusAll(10),
-                // link = ("https://github.com/nicbarker/clay"),
-                color = ifx PointerOver(github_link_id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
-            }),
-            BorderOutsideRadius(2, COLOR_RED, 10),
-            children = Text("Github", header_text_config)
-        );
+        border := BorderOutsideRadius(2, COLOR_RED, 10);
+        link_button(ID("DiscordLink"), "Discord", "https://github.com/nicbarker/clay/blob/main/README.md", header_text_config, layout, border);
+        link_button(ID("GithubLink"), "Github", "https://github.com/nicbarker/clay", header_text_config, layout, border);
     });
     
     h, id := cast(float) hu(0.65), cast(u32) 1;
     stripe :: (color: Color) #expand {
-        Element(ID("TopBorder", id), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(h) }}), Rectangle(.{ color = color }), );
+        Element(ID("TopBorder", id), Layout(.{ sizing = .{ SizingGrow(), SizingFixed(h) }}), Rectangle(.{ color = color }) );
         id += 1;
     }
     
@@ -156,6 +125,33 @@ create_layout :: () {
     );
 }
 
+link_button :: (id: ElementId, text: string, link: string, config: *TextElementConfig, layout: LayoutConfig, configs: ..ElementConfig) {
+    rectangle := Rectangle(.{
+        cornerRadius = CornerRadiusAll(10),
+        color = ifx PointerOver(id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
+    });
+    
+    // we have to do this silly thing because we can't spread configs into Element AND put in rectangle, sad!
+    mark := Basic.get_temporary_storage_mark();
+    args := Basic.NewArray(configs.count+1, ElementConfig,, Basic.temp);
+    for configs args[it_index] = it;
+    args[args.count-1] = rectangle;
+    Element(id, layout, ..args);
+    Basic.set_temporary_storage_mark(mark);
+    
+    #if OS == .WASM then rectangle.config.rectangleElementConfig.link = link; else {
+        user_data := Basic.New(string, false,, Basic.temp);
+        user_data.* = link;
+        OnHover(xx (id: ElementId, pointer_info: PointerData, link: *string) #c_call {
+            if pointer_info.state == .PRESSED_THIS_FRAME {
+                push_context { Basic.log("TODO: Open Link %", link.*); }
+            }
+        }, xx user_data);
+    }
+    
+    Text(text, config);
+}
+
 #load "desktop.jai";
 
 active_renderer_index : int = 0;
@@ -166,14 +162,14 @@ using,only(.["+", "-", "*", "/"]) Math  :: #import "Math";
 Compiler      :: #import "Compiler";
 Program_Print :: #import "Program_Print";
 Remap_Context :: #import "Remap_Context"(VERBOSE=false);
-Clay          :: #import,file "../../../module.jai";
+using Clay    :: #import,file "../../../module.jai";
 
 using shared_state: *State;
 
 #program_export "update"
 update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
     push_context,defer_pop Remap_Context.remap_context();
-    using Clay;
+    
     Basic.assert(xx state);
     shared_state = state;
     if !clay_context {
@@ -184,12 +180,14 @@ update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
         };
         clay_context = Initialize(clay_memory, .{ window_width, window_height }, handle_error);
     }
+    Basic.assert(xx clay_context);
     
     SetCurrentContext(clay_context);
     SetMeasureTextFunction(measure_text);
     SetDebugModeEnabled(show_debugger);
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });
+    debugViewWidth = xx (window_width * 0.35);
     // mouse_position := Math.Vector2.{R.GetMousePosition().x, R.GetMousePosition().y};
     // SetQueryScrollOffsetFunction((id: u32) -> Vector2 #c_call {
     //     using shared_state;
