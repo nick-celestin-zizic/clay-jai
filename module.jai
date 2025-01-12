@@ -1,7 +1,7 @@
 //
 // This file was auto-generated using the following command:
 //
-// jai D:/Dev/clay-jai/generate.jai
+// jai generate.jai
 //
 Element :: (id: ElementId, layout: LayoutConfig, configs: ..ElementConfig, $children := #code,null, cc := #caller_code) #expand {
     OpenElement();
@@ -1023,6 +1023,8 @@ LayoutElementTreeRootArray_Allocate_Arena :: (capacity: s32, arena: *Arena) -> L
 LayoutElementTreeRootArray_Add :: (array: *LayoutElementTreeRootArray, item: LayoutElementTreeRoot) -> *LayoutElementTreeRoot #foreign clay "Clay__LayoutElementTreeRootArray_Add";
 
 LayoutElementTreeRootArray_Get :: (array: *LayoutElementTreeRootArray, index: s32) -> *LayoutElementTreeRoot #foreign clay "Clay__LayoutElementTreeRootArray_Get";
+
+LayoutElementTreeRootArray_Set :: (array: *LayoutElementTreeRootArray, index: s32, value: LayoutElementTreeRoot) -> void #foreign clay "Clay__LayoutElementTreeRootArray_Set";
 
 CharArray :: struct {
     capacity:      s32;
