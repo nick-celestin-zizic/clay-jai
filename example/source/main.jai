@@ -1,18 +1,15 @@
 #load "common.jai";
 
-main_thread_context: *#Context; // for clay callbacks because they don't have userdata
 shared_state: State; // state that we pass to the layout library
-
 main :: () {
     set_working_directory(String.path_strip_filename(System.get_path_of_running_executable()));
-    main_thread_context = *context;
-    
     shared_state.handle_error = .{
         (using error: Clay.ErrorData) -> void #c_call {
             push_context,defer_pop cast(*#Context) userData;
+            push_context,defer_pop Remap_Context.remap_context();
             assert(false, "CLAY ERROR %: %", errorType, string.{xx errorText.length, xx errorText.chars});
         },
-        xx main_thread_context
+        xx *context
     };
     
     // Windows is very bad at thread-switching by default unless you do this. Sad.
@@ -51,7 +48,8 @@ load_library :: (old_library: Library) -> Library {
             // We need a library, but do not have one loaded!
             // Maybe there is an old library we can rename and use instead?
             if file_exists(LAYOUT_LIBRARY_FILES[0].old) {
-                for LAYOUT_LIBRARY_FILES atomic_file_replace_or_just_rename_if_destination_file_does_not_exist(it.old, it.new);
+                for LAYOUT_LIBRARY_FILES
+                    atomic_file_replace_or_just_rename_if_destination_file_does_not_exist(it.old, it.new);
             } else {
                 log_error("could not find any layout dll!");
                 return .{};
@@ -67,9 +65,11 @@ load_library :: (old_library: Library) -> Library {
     if old_library.handle then dynamic_library_unload(old_library.handle);
     dynamic_library_unload(dummy_library);
     
-    for LAYOUT_LIBRARY_FILES atomic_file_replace_or_just_rename_if_destination_file_does_not_exist(it.new, it.old);
+    for LAYOUT_LIBRARY_FILES 
+        atomic_file_replace_or_just_rename_if_destination_file_does_not_exist(it.new, it.old);
     
-    using new_library: Library;
+    using new_library: Library = ---;
+    
     handle = dynamic_library_load("layout-old");
     if !handle {
         value, desc := System.get_error_value_and_string();
@@ -98,18 +98,25 @@ load_library :: (old_library: Library) -> Library {
         .{"layout-old.lib", "layout.lib"},
         .{"layout-old.pdb", "layout.pdb"},
     ];
-    dynamic_library_load :: inline (basename: string) -> *void { return Windows.LoadLibraryA(tprint("%.dll\0", basename).data); }
-    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void { return Windows.GetProcAddress(library, temp_c_string(name)); }
-    dynamic_library_unload :: inline (library_handle: *void) { Windows.FreeLibrary(library_handle); }
+    dynamic_library_load :: inline (basename: string) -> *void {
+        return Windows.LoadLibraryA(tprint("%.dll\0", basename).data);
+    }
+    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void {
+        return Windows.GetProcAddress(library, temp_c_string(name));
+    }
+    dynamic_library_unload :: Windows.FreeLibrary;
 } else {
     LAYOUT_LIBRARY_FILES :: struct {old, new: string;}.[
         .{"layout-old.so", "layout.so"},
     ];
     Posix :: #import "Posix";
-    dynamic_library_load :: inline (basename: string) -> *void { return Posix.dlopen(tprint("%.so\0", basename).data, Posix.RTLD_LOCAL); }
-    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void { return Posix.dlsym(library, temp_c_string(name)); }
+    dynamic_library_load :: inline (basename: string) -> *void {
+        return Posix.dlopen(tprint("%.so\0", basename).data, Posix.RTLD_LOCAL);
+    }
+    dynamic_library_get_procedure :: inline (library: *void, name: string) -> *void {
+        return Posix.dlsym(library, temp_c_string(name));
+    }
     dynamic_library_unload :: Posix.dlclose;
-    // #assert false "TODO: implement for this OS";
 }
 
 
@@ -127,6 +134,7 @@ File_Utilities  :: #import "File_Utilities";
 Window_Creation :: #import "Window_Creation";
 Input           :: #import "Input";
 Simp            :: #import "Simp";
+Remap_Context   :: #import "Remap_Context";
 Clay            :: #import,file "../../module.jai";
 
 simp_start :: () {
@@ -185,8 +193,6 @@ simp_update :: () {
 }
 
 simp_render :: (commands: *Clay.RenderCommandArray) {
-    push_context,defer_pop main_thread_context;
-    
     array_reset_keeping_memory(*simp_scissors);
     
     to_math_color :: inline (using color: Clay.Color) -> Math.Vector4 { return .{ r / 255.0, g / 255.0, b / 255.0, a / 255.0 }; }
@@ -217,7 +223,7 @@ simp_render :: (commands: *Clay.RenderCommandArray) {
             defer if text_width > bound.width  then pop_scissor();
             
             text_x, text_y := getrect_text_origin(font, bound, text_width);
-            Simp.draw_prepared_text(font, xx text_x, xx (text_y + bound.height/2), to_math_color(config.textColor));
+            Simp.draw_prepared_text(font, xx text_x, xx round(text_y + bound.height/2), to_math_color(config.textColor));
         }
         case .IMAGE; {
             texture := (cast(*Simp.Texture)command.config.imageElementConfig.imageData);
@@ -322,8 +328,9 @@ simp_get_font :: (id: u16, _size: u16) -> *Simp.Dynamic_Font {
     return font;
 }
 
-simp_measure_text :: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call {
-    push_context,defer_pop main_thread_context;
+simp_measure_text :: (text: Clay.StringSlice, config: *Clay.TextElementConfig, user_data: u64) -> Clay.Dimensions #c_call {
+    push_context,defer_pop cast(*#Context) user_data;
+    push_context,defer_pop Remap_Context.remap_context();
     
     text_size := Clay.Dimensions.{0, 0};
 

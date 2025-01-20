@@ -116,6 +116,12 @@ StringArray :: struct {
     internalArray: *String;
 }
 
+StringSlice :: struct {
+    length:    s32;
+    chars:     *u8;
+    baseChars: *u8; // The source string / char* that this slice was derived from
+}
+
 Arena :: struct {
     nextAllocation: u64;
     capacity:       u64;
@@ -240,8 +246,10 @@ Sizing :: struct {
 }
 
 Padding :: struct {
-    x: u16;
-    y: u16;
+    left:   u16;
+    right:  u16;
+    top:    u16;
+    bottom: u16;
 }
 
 LayoutConfig :: struct {
@@ -380,6 +388,11 @@ ScrollContainerData :: struct {
     found:                     bool;
 }
 
+ElementData :: struct {
+    boundingBox: BoundingBox;
+    found:       bool;
+}
+
 RenderCommandType :: enum s32 {
     NONE          :: 0;
     RECTANGLE     :: 1;
@@ -483,6 +496,8 @@ GetElementId :: (idString: String) -> ElementId #foreign clay "Clay_GetElementId
 
 GetElementIdWithIndex :: (idString: String, index: u32) -> ElementId #foreign clay "Clay_GetElementIdWithIndex";
 
+GetElementData :: (id: ElementId) -> ElementData #foreign clay "Clay_GetElementData";
+
 Hovered :: () -> bool #foreign clay "Clay_Hovered";
 
 OnHover :: (onHoverFunction: #type (elementId: ElementId, pointerData: PointerData, userData: s64) -> void #c_call, userData: s64) -> void #foreign clay "Clay_OnHover";
@@ -491,9 +506,9 @@ PointerOver :: (elementId: ElementId) -> bool #foreign clay "Clay_PointerOver";
 
 GetScrollContainerData :: (id: ElementId) -> ScrollContainerData #foreign clay "Clay_GetScrollContainerData";
 
-SetMeasureTextFunction :: (measureTextFunction: #type (text: *String, config: *TextElementConfig) -> Dimensions #c_call) -> void #foreign clay "Clay_SetMeasureTextFunction";
+SetMeasureTextFunction :: (measureTextFunction: #type (text: StringSlice, config: *TextElementConfig, userData: u64) -> Dimensions #c_call, userData: u64) -> void #foreign clay "Clay_SetMeasureTextFunction";
 
-SetQueryScrollOffsetFunction :: (queryScrollOffsetFunction: #type (elementId: u32) -> Vector2 #c_call) -> void #foreign clay "Clay_SetQueryScrollOffsetFunction";
+SetQueryScrollOffsetFunction :: (queryScrollOffsetFunction: #type (elementId: u32, userData: u64) -> Vector2 #c_call, userData: u64) -> void #foreign clay "Clay_SetQueryScrollOffsetFunction";
 
 RenderCommandArray_Get :: (array: *RenderCommandArray, index: s32) -> *RenderCommand #foreign clay "Clay_RenderCommandArray_Get";
 
@@ -510,6 +525,8 @@ SetMaxElementCount :: (maxElementCount: s32) -> void #foreign clay "Clay_SetMaxE
 GetMaxMeasureTextCacheWordCount :: () -> s32 #foreign clay "Clay_GetMaxMeasureTextCacheWordCount";
 
 SetMaxMeasureTextCacheWordCount :: (maxMeasureTextCacheWordCount: s32) -> void #foreign clay "Clay_SetMaxMeasureTextCacheWordCount";
+
+ResetMeasureTextCache :: () -> void #foreign clay "Clay_ResetMeasureTextCache";
 
 // Internal API functions required by macros
 OpenElement :: () -> void #foreign clay "Clay__OpenElement";
@@ -553,9 +570,10 @@ SPACECHAR: String #elsewhere clay "CLAY__SPACECHAR";
 STRING_DEFAULT: String #elsewhere clay "CLAY__STRING_DEFAULT";
 
 BooleanWarnings :: struct {
-    maxElementsExceeded:         bool;
-    maxRenderCommandsExceeded:   bool;
-    maxTextMeasureCacheExceeded: bool;
+    maxElementsExceeded:           bool;
+    maxRenderCommandsExceeded:     bool;
+    maxTextMeasureCacheExceeded:   bool;
+    textMeasurementFunctionNotSet: bool;
 }
 
 Warning :: struct {
@@ -943,6 +961,7 @@ MeasuredWordArray_Add :: (array: *MeasuredWordArray, item: MeasuredWord) -> *Mea
 MeasureTextCacheItem :: struct {
     unwrappedDimensions:     Dimensions;
     measuredWordsStartIndex: s32;
+    containsNewlines:        bool;
     id:                      u32; // Hash map data
     nextIndex:               s32;
     generation:              u32;
@@ -1053,6 +1072,8 @@ Context :: struct {
     debugSelectedElementId:             u32;
     generation:                         u32;
     arenaResetOffset:                   u64;
+    mesureTextUserData:                 u64;
+    queryScrollOffsetUserData:          u64;
     internalArena:                      Arena;
 
     // Layout Elements / Render Commands
@@ -1102,8 +1123,8 @@ Context_Allocate_Arena :: (arena: *Arena) -> *Context #foreign clay "Clay__Conte
 
 WriteStringToCharBuffer :: (buffer: *CharArray, _string: String) -> String #foreign clay "Clay__WriteStringToCharBuffer";
 
-MeasureText: #type (text: *String, config: *TextElementConfig) -> Dimensions #c_call #elsewhere clay "Clay__MeasureText";
-QueryScrollOffset: #type (elementId: u32) -> Vector2 #c_call #elsewhere clay "Clay__QueryScrollOffset";
+MeasureText: #type (text: StringSlice, config: *TextElementConfig, userData: u64) -> Dimensions #c_call #elsewhere clay "Clay__MeasureText";
+QueryScrollOffset: #type (elementId: u32, userData: u64) -> Vector2 #c_call #elsewhere clay "Clay__QueryScrollOffset";
 
 GetOpenLayoutElement :: () -> *LayoutElement #foreign clay "Clay__GetOpenLayoutElement";
 
@@ -1214,6 +1235,17 @@ clay :: #library,no_dll "windows/clay";
         assert(((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)) == 8, "StringArray.internalArray has unexpected offset % instead of 8", ((cast(*void)(*instance.internalArray)) - cast(*void)(*instance)));
         assert(size_of(type_of(StringArray.internalArray)) == 8, "StringArray.internalArray has unexpected size % instead of 8", size_of(type_of(StringArray.internalArray)));
         assert(size_of(StringArray) == 16, "StringArray has size % instead of 16", size_of(StringArray));
+    }
+
+    {
+        instance: StringSlice;
+        assert(((cast(*void)(*instance.length)) - cast(*void)(*instance)) == 0, "StringSlice.length has unexpected offset % instead of 0", ((cast(*void)(*instance.length)) - cast(*void)(*instance)));
+        assert(size_of(type_of(StringSlice.length)) == 4, "StringSlice.length has unexpected size % instead of 4", size_of(type_of(StringSlice.length)));
+        assert(((cast(*void)(*instance.chars)) - cast(*void)(*instance)) == 8, "StringSlice.chars has unexpected offset % instead of 8", ((cast(*void)(*instance.chars)) - cast(*void)(*instance)));
+        assert(size_of(type_of(StringSlice.chars)) == 8, "StringSlice.chars has unexpected size % instead of 8", size_of(type_of(StringSlice.chars)));
+        assert(((cast(*void)(*instance.baseChars)) - cast(*void)(*instance)) == 16, "StringSlice.baseChars has unexpected offset % instead of 16", ((cast(*void)(*instance.baseChars)) - cast(*void)(*instance)));
+        assert(size_of(type_of(StringSlice.baseChars)) == 8, "StringSlice.baseChars has unexpected size % instead of 8", size_of(type_of(StringSlice.baseChars)));
+        assert(size_of(StringSlice) == 24, "StringSlice has size % instead of 24", size_of(StringSlice));
     }
 
     {
@@ -1335,11 +1367,15 @@ clay :: #library,no_dll "windows/clay";
 
     {
         instance: Padding;
-        assert(((cast(*void)(*instance.x)) - cast(*void)(*instance)) == 0, "Padding.x has unexpected offset % instead of 0", ((cast(*void)(*instance.x)) - cast(*void)(*instance)));
-        assert(size_of(type_of(Padding.x)) == 2, "Padding.x has unexpected size % instead of 2", size_of(type_of(Padding.x)));
-        assert(((cast(*void)(*instance.y)) - cast(*void)(*instance)) == 2, "Padding.y has unexpected offset % instead of 2", ((cast(*void)(*instance.y)) - cast(*void)(*instance)));
-        assert(size_of(type_of(Padding.y)) == 2, "Padding.y has unexpected size % instead of 2", size_of(type_of(Padding.y)));
-        assert(size_of(Padding) == 4, "Padding has size % instead of 4", size_of(Padding));
+        assert(((cast(*void)(*instance.left)) - cast(*void)(*instance)) == 0, "Padding.left has unexpected offset % instead of 0", ((cast(*void)(*instance.left)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Padding.left)) == 2, "Padding.left has unexpected size % instead of 2", size_of(type_of(Padding.left)));
+        assert(((cast(*void)(*instance.right)) - cast(*void)(*instance)) == 2, "Padding.right has unexpected offset % instead of 2", ((cast(*void)(*instance.right)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Padding.right)) == 2, "Padding.right has unexpected size % instead of 2", size_of(type_of(Padding.right)));
+        assert(((cast(*void)(*instance.top)) - cast(*void)(*instance)) == 4, "Padding.top has unexpected offset % instead of 4", ((cast(*void)(*instance.top)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Padding.top)) == 2, "Padding.top has unexpected size % instead of 2", size_of(type_of(Padding.top)));
+        assert(((cast(*void)(*instance.bottom)) - cast(*void)(*instance)) == 6, "Padding.bottom has unexpected offset % instead of 6", ((cast(*void)(*instance.bottom)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Padding.bottom)) == 2, "Padding.bottom has unexpected size % instead of 2", size_of(type_of(Padding.bottom)));
+        assert(size_of(Padding) == 8, "Padding has size % instead of 8", size_of(Padding));
     }
 
     {
@@ -1347,14 +1383,14 @@ clay :: #library,no_dll "windows/clay";
         assert(((cast(*void)(*instance.sizing)) - cast(*void)(*instance)) == 0, "LayoutConfig.sizing has unexpected offset % instead of 0", ((cast(*void)(*instance.sizing)) - cast(*void)(*instance)));
         assert(size_of(type_of(LayoutConfig.sizing)) == 24, "LayoutConfig.sizing has unexpected size % instead of 24", size_of(type_of(LayoutConfig.sizing)));
         assert(((cast(*void)(*instance.padding)) - cast(*void)(*instance)) == 24, "LayoutConfig.padding has unexpected offset % instead of 24", ((cast(*void)(*instance.padding)) - cast(*void)(*instance)));
-        assert(size_of(type_of(LayoutConfig.padding)) == 4, "LayoutConfig.padding has unexpected size % instead of 4", size_of(type_of(LayoutConfig.padding)));
-        assert(((cast(*void)(*instance.childGap)) - cast(*void)(*instance)) == 28, "LayoutConfig.childGap has unexpected offset % instead of 28", ((cast(*void)(*instance.childGap)) - cast(*void)(*instance)));
+        assert(size_of(type_of(LayoutConfig.padding)) == 8, "LayoutConfig.padding has unexpected size % instead of 8", size_of(type_of(LayoutConfig.padding)));
+        assert(((cast(*void)(*instance.childGap)) - cast(*void)(*instance)) == 32, "LayoutConfig.childGap has unexpected offset % instead of 32", ((cast(*void)(*instance.childGap)) - cast(*void)(*instance)));
         assert(size_of(type_of(LayoutConfig.childGap)) == 2, "LayoutConfig.childGap has unexpected size % instead of 2", size_of(type_of(LayoutConfig.childGap)));
-        assert(((cast(*void)(*instance.childAlignment)) - cast(*void)(*instance)) == 32, "LayoutConfig.childAlignment has unexpected offset % instead of 32", ((cast(*void)(*instance.childAlignment)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.childAlignment)) - cast(*void)(*instance)) == 36, "LayoutConfig.childAlignment has unexpected offset % instead of 36", ((cast(*void)(*instance.childAlignment)) - cast(*void)(*instance)));
         assert(size_of(type_of(LayoutConfig.childAlignment)) == 8, "LayoutConfig.childAlignment has unexpected size % instead of 8", size_of(type_of(LayoutConfig.childAlignment)));
-        assert(((cast(*void)(*instance.layoutDirection)) - cast(*void)(*instance)) == 40, "LayoutConfig.layoutDirection has unexpected offset % instead of 40", ((cast(*void)(*instance.layoutDirection)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutDirection)) - cast(*void)(*instance)) == 44, "LayoutConfig.layoutDirection has unexpected offset % instead of 44", ((cast(*void)(*instance.layoutDirection)) - cast(*void)(*instance)));
         assert(size_of(type_of(LayoutConfig.layoutDirection)) == 4, "LayoutConfig.layoutDirection has unexpected size % instead of 4", size_of(type_of(LayoutConfig.layoutDirection)));
-        assert(size_of(LayoutConfig) == 44, "LayoutConfig has size % instead of 44", size_of(LayoutConfig));
+        assert(size_of(LayoutConfig) == 48, "LayoutConfig has size % instead of 48", size_of(LayoutConfig));
     }
 
     {
@@ -1504,6 +1540,15 @@ clay :: #library,no_dll "windows/clay";
     }
 
     {
+        instance: ElementData;
+        assert(((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)) == 0, "ElementData.boundingBox has unexpected offset % instead of 0", ((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementData.boundingBox)) == 16, "ElementData.boundingBox has unexpected size % instead of 16", size_of(type_of(ElementData.boundingBox)));
+        assert(((cast(*void)(*instance.found)) - cast(*void)(*instance)) == 16, "ElementData.found has unexpected offset % instead of 16", ((cast(*void)(*instance.found)) - cast(*void)(*instance)));
+        assert(size_of(type_of(ElementData.found)) == 1, "ElementData.found has unexpected size % instead of 1", size_of(type_of(ElementData.found)));
+        assert(size_of(ElementData) == 20, "ElementData has size % instead of 20", size_of(ElementData));
+    }
+
+    {
         instance: RenderCommand;
         assert(((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)) == 0, "RenderCommand.boundingBox has unexpected offset % instead of 0", ((cast(*void)(*instance.boundingBox)) - cast(*void)(*instance)));
         assert(size_of(type_of(RenderCommand.boundingBox)) == 16, "RenderCommand.boundingBox has unexpected size % instead of 16", size_of(type_of(RenderCommand.boundingBox)));
@@ -1566,7 +1611,9 @@ clay :: #library,no_dll "windows/clay";
         assert(size_of(type_of(BooleanWarnings.maxRenderCommandsExceeded)) == 1, "BooleanWarnings.maxRenderCommandsExceeded has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.maxRenderCommandsExceeded)));
         assert(((cast(*void)(*instance.maxTextMeasureCacheExceeded)) - cast(*void)(*instance)) == 2, "BooleanWarnings.maxTextMeasureCacheExceeded has unexpected offset % instead of 2", ((cast(*void)(*instance.maxTextMeasureCacheExceeded)) - cast(*void)(*instance)));
         assert(size_of(type_of(BooleanWarnings.maxTextMeasureCacheExceeded)) == 1, "BooleanWarnings.maxTextMeasureCacheExceeded has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.maxTextMeasureCacheExceeded)));
-        assert(size_of(BooleanWarnings) == 3, "BooleanWarnings has size % instead of 3", size_of(BooleanWarnings));
+        assert(((cast(*void)(*instance.textMeasurementFunctionNotSet)) - cast(*void)(*instance)) == 3, "BooleanWarnings.textMeasurementFunctionNotSet has unexpected offset % instead of 3", ((cast(*void)(*instance.textMeasurementFunctionNotSet)) - cast(*void)(*instance)));
+        assert(size_of(type_of(BooleanWarnings.textMeasurementFunctionNotSet)) == 1, "BooleanWarnings.textMeasurementFunctionNotSet has unexpected size % instead of 1", size_of(type_of(BooleanWarnings.textMeasurementFunctionNotSet)));
+        assert(size_of(BooleanWarnings) == 4, "BooleanWarnings has size % instead of 4", size_of(BooleanWarnings));
     }
 
     {
@@ -1953,13 +2000,15 @@ clay :: #library,no_dll "windows/clay";
         assert(size_of(type_of(MeasureTextCacheItem.unwrappedDimensions)) == 8, "MeasureTextCacheItem.unwrappedDimensions has unexpected size % instead of 8", size_of(type_of(MeasureTextCacheItem.unwrappedDimensions)));
         assert(((cast(*void)(*instance.measuredWordsStartIndex)) - cast(*void)(*instance)) == 8, "MeasureTextCacheItem.measuredWordsStartIndex has unexpected offset % instead of 8", ((cast(*void)(*instance.measuredWordsStartIndex)) - cast(*void)(*instance)));
         assert(size_of(type_of(MeasureTextCacheItem.measuredWordsStartIndex)) == 4, "MeasureTextCacheItem.measuredWordsStartIndex has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.measuredWordsStartIndex)));
-        assert(((cast(*void)(*instance.id)) - cast(*void)(*instance)) == 12, "MeasureTextCacheItem.id has unexpected offset % instead of 12", ((cast(*void)(*instance.id)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.containsNewlines)) - cast(*void)(*instance)) == 12, "MeasureTextCacheItem.containsNewlines has unexpected offset % instead of 12", ((cast(*void)(*instance.containsNewlines)) - cast(*void)(*instance)));
+        assert(size_of(type_of(MeasureTextCacheItem.containsNewlines)) == 1, "MeasureTextCacheItem.containsNewlines has unexpected size % instead of 1", size_of(type_of(MeasureTextCacheItem.containsNewlines)));
+        assert(((cast(*void)(*instance.id)) - cast(*void)(*instance)) == 16, "MeasureTextCacheItem.id has unexpected offset % instead of 16", ((cast(*void)(*instance.id)) - cast(*void)(*instance)));
         assert(size_of(type_of(MeasureTextCacheItem.id)) == 4, "MeasureTextCacheItem.id has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.id)));
-        assert(((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)) == 16, "MeasureTextCacheItem.nextIndex has unexpected offset % instead of 16", ((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)) == 20, "MeasureTextCacheItem.nextIndex has unexpected offset % instead of 20", ((cast(*void)(*instance.nextIndex)) - cast(*void)(*instance)));
         assert(size_of(type_of(MeasureTextCacheItem.nextIndex)) == 4, "MeasureTextCacheItem.nextIndex has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.nextIndex)));
-        assert(((cast(*void)(*instance.generation)) - cast(*void)(*instance)) == 20, "MeasureTextCacheItem.generation has unexpected offset % instead of 20", ((cast(*void)(*instance.generation)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.generation)) - cast(*void)(*instance)) == 24, "MeasureTextCacheItem.generation has unexpected offset % instead of 24", ((cast(*void)(*instance.generation)) - cast(*void)(*instance)));
         assert(size_of(type_of(MeasureTextCacheItem.generation)) == 4, "MeasureTextCacheItem.generation has unexpected size % instead of 4", size_of(type_of(MeasureTextCacheItem.generation)));
-        assert(size_of(MeasureTextCacheItem) == 24, "MeasureTextCacheItem has size % instead of 24", size_of(MeasureTextCacheItem));
+        assert(size_of(MeasureTextCacheItem) == 28, "MeasureTextCacheItem has size % instead of 28", size_of(MeasureTextCacheItem));
     }
 
     {
@@ -2054,7 +2103,7 @@ clay :: #library,no_dll "windows/clay";
         assert(((cast(*void)(*instance.errorHandler)) - cast(*void)(*instance)) == 16, "Context.errorHandler has unexpected offset % instead of 16", ((cast(*void)(*instance.errorHandler)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.errorHandler)) == 16, "Context.errorHandler has unexpected size % instead of 16", size_of(type_of(Context.errorHandler)));
         assert(((cast(*void)(*instance.booleanWarnings)) - cast(*void)(*instance)) == 32, "Context.booleanWarnings has unexpected offset % instead of 32", ((cast(*void)(*instance.booleanWarnings)) - cast(*void)(*instance)));
-        assert(size_of(type_of(Context.booleanWarnings)) == 3, "Context.booleanWarnings has unexpected size % instead of 3", size_of(type_of(Context.booleanWarnings)));
+        assert(size_of(type_of(Context.booleanWarnings)) == 4, "Context.booleanWarnings has unexpected size % instead of 4", size_of(type_of(Context.booleanWarnings)));
         assert(((cast(*void)(*instance.warnings)) - cast(*void)(*instance)) == 40, "Context.warnings has unexpected offset % instead of 40", ((cast(*void)(*instance.warnings)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.warnings)) == 16, "Context.warnings has unexpected size % instead of 16", size_of(type_of(Context.warnings)));
         assert(((cast(*void)(*instance.pointerInfo)) - cast(*void)(*instance)) == 56, "Context.pointerInfo has unexpected offset % instead of 56", ((cast(*void)(*instance.pointerInfo)) - cast(*void)(*instance)));
@@ -2077,81 +2126,85 @@ clay :: #library,no_dll "windows/clay";
         assert(size_of(type_of(Context.generation)) == 4, "Context.generation has unexpected size % instead of 4", size_of(type_of(Context.generation)));
         assert(((cast(*void)(*instance.arenaResetOffset)) - cast(*void)(*instance)) == 128, "Context.arenaResetOffset has unexpected offset % instead of 128", ((cast(*void)(*instance.arenaResetOffset)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.arenaResetOffset)) == 8, "Context.arenaResetOffset has unexpected size % instead of 8", size_of(type_of(Context.arenaResetOffset)));
-        assert(((cast(*void)(*instance.internalArena)) - cast(*void)(*instance)) == 136, "Context.internalArena has unexpected offset % instead of 136", ((cast(*void)(*instance.internalArena)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.mesureTextUserData)) - cast(*void)(*instance)) == 136, "Context.mesureTextUserData has unexpected offset % instead of 136", ((cast(*void)(*instance.mesureTextUserData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Context.mesureTextUserData)) == 8, "Context.mesureTextUserData has unexpected size % instead of 8", size_of(type_of(Context.mesureTextUserData)));
+        assert(((cast(*void)(*instance.queryScrollOffsetUserData)) - cast(*void)(*instance)) == 144, "Context.queryScrollOffsetUserData has unexpected offset % instead of 144", ((cast(*void)(*instance.queryScrollOffsetUserData)) - cast(*void)(*instance)));
+        assert(size_of(type_of(Context.queryScrollOffsetUserData)) == 8, "Context.queryScrollOffsetUserData has unexpected size % instead of 8", size_of(type_of(Context.queryScrollOffsetUserData)));
+        assert(((cast(*void)(*instance.internalArena)) - cast(*void)(*instance)) == 152, "Context.internalArena has unexpected offset % instead of 152", ((cast(*void)(*instance.internalArena)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.internalArena)) == 24, "Context.internalArena has unexpected size % instead of 24", size_of(type_of(Context.internalArena)));
-        assert(((cast(*void)(*instance.layoutElements)) - cast(*void)(*instance)) == 160, "Context.layoutElements has unexpected offset % instead of 160", ((cast(*void)(*instance.layoutElements)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElements)) - cast(*void)(*instance)) == 176, "Context.layoutElements has unexpected offset % instead of 176", ((cast(*void)(*instance.layoutElements)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElements)) == 16, "Context.layoutElements has unexpected size % instead of 16", size_of(type_of(Context.layoutElements)));
-        assert(((cast(*void)(*instance.renderCommands)) - cast(*void)(*instance)) == 176, "Context.renderCommands has unexpected offset % instead of 176", ((cast(*void)(*instance.renderCommands)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.renderCommands)) - cast(*void)(*instance)) == 192, "Context.renderCommands has unexpected offset % instead of 192", ((cast(*void)(*instance.renderCommands)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.renderCommands)) == 16, "Context.renderCommands has unexpected size % instead of 16", size_of(type_of(Context.renderCommands)));
-        assert(((cast(*void)(*instance.openLayoutElementStack)) - cast(*void)(*instance)) == 192, "Context.openLayoutElementStack has unexpected offset % instead of 192", ((cast(*void)(*instance.openLayoutElementStack)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.openLayoutElementStack)) - cast(*void)(*instance)) == 208, "Context.openLayoutElementStack has unexpected offset % instead of 208", ((cast(*void)(*instance.openLayoutElementStack)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.openLayoutElementStack)) == 16, "Context.openLayoutElementStack has unexpected size % instead of 16", size_of(type_of(Context.openLayoutElementStack)));
-        assert(((cast(*void)(*instance.layoutElementChildren)) - cast(*void)(*instance)) == 208, "Context.layoutElementChildren has unexpected offset % instead of 208", ((cast(*void)(*instance.layoutElementChildren)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementChildren)) - cast(*void)(*instance)) == 224, "Context.layoutElementChildren has unexpected offset % instead of 224", ((cast(*void)(*instance.layoutElementChildren)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementChildren)) == 16, "Context.layoutElementChildren has unexpected size % instead of 16", size_of(type_of(Context.layoutElementChildren)));
-        assert(((cast(*void)(*instance.layoutElementChildrenBuffer)) - cast(*void)(*instance)) == 224, "Context.layoutElementChildrenBuffer has unexpected offset % instead of 224", ((cast(*void)(*instance.layoutElementChildrenBuffer)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementChildrenBuffer)) - cast(*void)(*instance)) == 240, "Context.layoutElementChildrenBuffer has unexpected offset % instead of 240", ((cast(*void)(*instance.layoutElementChildrenBuffer)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementChildrenBuffer)) == 16, "Context.layoutElementChildrenBuffer has unexpected size % instead of 16", size_of(type_of(Context.layoutElementChildrenBuffer)));
-        assert(((cast(*void)(*instance.textElementData)) - cast(*void)(*instance)) == 240, "Context.textElementData has unexpected offset % instead of 240", ((cast(*void)(*instance.textElementData)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.textElementData)) - cast(*void)(*instance)) == 256, "Context.textElementData has unexpected offset % instead of 256", ((cast(*void)(*instance.textElementData)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.textElementData)) == 16, "Context.textElementData has unexpected size % instead of 16", size_of(type_of(Context.textElementData)));
-        assert(((cast(*void)(*instance.imageElementPointers)) - cast(*void)(*instance)) == 256, "Context.imageElementPointers has unexpected offset % instead of 256", ((cast(*void)(*instance.imageElementPointers)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.imageElementPointers)) - cast(*void)(*instance)) == 272, "Context.imageElementPointers has unexpected offset % instead of 272", ((cast(*void)(*instance.imageElementPointers)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.imageElementPointers)) == 16, "Context.imageElementPointers has unexpected size % instead of 16", size_of(type_of(Context.imageElementPointers)));
-        assert(((cast(*void)(*instance.reusableElementIndexBuffer)) - cast(*void)(*instance)) == 272, "Context.reusableElementIndexBuffer has unexpected offset % instead of 272", ((cast(*void)(*instance.reusableElementIndexBuffer)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.reusableElementIndexBuffer)) - cast(*void)(*instance)) == 288, "Context.reusableElementIndexBuffer has unexpected offset % instead of 288", ((cast(*void)(*instance.reusableElementIndexBuffer)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.reusableElementIndexBuffer)) == 16, "Context.reusableElementIndexBuffer has unexpected size % instead of 16", size_of(type_of(Context.reusableElementIndexBuffer)));
-        assert(((cast(*void)(*instance.layoutElementClipElementIds)) - cast(*void)(*instance)) == 288, "Context.layoutElementClipElementIds has unexpected offset % instead of 288", ((cast(*void)(*instance.layoutElementClipElementIds)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementClipElementIds)) - cast(*void)(*instance)) == 304, "Context.layoutElementClipElementIds has unexpected offset % instead of 304", ((cast(*void)(*instance.layoutElementClipElementIds)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementClipElementIds)) == 16, "Context.layoutElementClipElementIds has unexpected size % instead of 16", size_of(type_of(Context.layoutElementClipElementIds)));
-        assert(((cast(*void)(*instance.layoutConfigs)) - cast(*void)(*instance)) == 304, "Context.layoutConfigs has unexpected offset % instead of 304", ((cast(*void)(*instance.layoutConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutConfigs)) - cast(*void)(*instance)) == 320, "Context.layoutConfigs has unexpected offset % instead of 320", ((cast(*void)(*instance.layoutConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutConfigs)) == 16, "Context.layoutConfigs has unexpected size % instead of 16", size_of(type_of(Context.layoutConfigs)));
-        assert(((cast(*void)(*instance.elementConfigBuffer)) - cast(*void)(*instance)) == 320, "Context.elementConfigBuffer has unexpected offset % instead of 320", ((cast(*void)(*instance.elementConfigBuffer)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.elementConfigBuffer)) - cast(*void)(*instance)) == 336, "Context.elementConfigBuffer has unexpected offset % instead of 336", ((cast(*void)(*instance.elementConfigBuffer)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.elementConfigBuffer)) == 16, "Context.elementConfigBuffer has unexpected size % instead of 16", size_of(type_of(Context.elementConfigBuffer)));
-        assert(((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)) == 336, "Context.elementConfigs has unexpected offset % instead of 336", ((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)) == 352, "Context.elementConfigs has unexpected offset % instead of 352", ((cast(*void)(*instance.elementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.elementConfigs)) == 16, "Context.elementConfigs has unexpected size % instead of 16", size_of(type_of(Context.elementConfigs)));
-        assert(((cast(*void)(*instance.rectangleElementConfigs)) - cast(*void)(*instance)) == 352, "Context.rectangleElementConfigs has unexpected offset % instead of 352", ((cast(*void)(*instance.rectangleElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.rectangleElementConfigs)) - cast(*void)(*instance)) == 368, "Context.rectangleElementConfigs has unexpected offset % instead of 368", ((cast(*void)(*instance.rectangleElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.rectangleElementConfigs)) == 16, "Context.rectangleElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.rectangleElementConfigs)));
-        assert(((cast(*void)(*instance.textElementConfigs)) - cast(*void)(*instance)) == 368, "Context.textElementConfigs has unexpected offset % instead of 368", ((cast(*void)(*instance.textElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.textElementConfigs)) - cast(*void)(*instance)) == 384, "Context.textElementConfigs has unexpected offset % instead of 384", ((cast(*void)(*instance.textElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.textElementConfigs)) == 16, "Context.textElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.textElementConfigs)));
-        assert(((cast(*void)(*instance.imageElementConfigs)) - cast(*void)(*instance)) == 384, "Context.imageElementConfigs has unexpected offset % instead of 384", ((cast(*void)(*instance.imageElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.imageElementConfigs)) - cast(*void)(*instance)) == 400, "Context.imageElementConfigs has unexpected offset % instead of 400", ((cast(*void)(*instance.imageElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.imageElementConfigs)) == 16, "Context.imageElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.imageElementConfigs)));
-        assert(((cast(*void)(*instance.floatingElementConfigs)) - cast(*void)(*instance)) == 400, "Context.floatingElementConfigs has unexpected offset % instead of 400", ((cast(*void)(*instance.floatingElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.floatingElementConfigs)) - cast(*void)(*instance)) == 416, "Context.floatingElementConfigs has unexpected offset % instead of 416", ((cast(*void)(*instance.floatingElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.floatingElementConfigs)) == 16, "Context.floatingElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.floatingElementConfigs)));
-        assert(((cast(*void)(*instance.scrollElementConfigs)) - cast(*void)(*instance)) == 416, "Context.scrollElementConfigs has unexpected offset % instead of 416", ((cast(*void)(*instance.scrollElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.scrollElementConfigs)) - cast(*void)(*instance)) == 432, "Context.scrollElementConfigs has unexpected offset % instead of 432", ((cast(*void)(*instance.scrollElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.scrollElementConfigs)) == 16, "Context.scrollElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.scrollElementConfigs)));
-        assert(((cast(*void)(*instance.customElementConfigs)) - cast(*void)(*instance)) == 432, "Context.customElementConfigs has unexpected offset % instead of 432", ((cast(*void)(*instance.customElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.customElementConfigs)) - cast(*void)(*instance)) == 448, "Context.customElementConfigs has unexpected offset % instead of 448", ((cast(*void)(*instance.customElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.customElementConfigs)) == 16, "Context.customElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.customElementConfigs)));
-        assert(((cast(*void)(*instance.borderElementConfigs)) - cast(*void)(*instance)) == 448, "Context.borderElementConfigs has unexpected offset % instead of 448", ((cast(*void)(*instance.borderElementConfigs)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.borderElementConfigs)) - cast(*void)(*instance)) == 464, "Context.borderElementConfigs has unexpected offset % instead of 464", ((cast(*void)(*instance.borderElementConfigs)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.borderElementConfigs)) == 16, "Context.borderElementConfigs has unexpected size % instead of 16", size_of(type_of(Context.borderElementConfigs)));
-        assert(((cast(*void)(*instance.layoutElementIdStrings)) - cast(*void)(*instance)) == 464, "Context.layoutElementIdStrings has unexpected offset % instead of 464", ((cast(*void)(*instance.layoutElementIdStrings)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementIdStrings)) - cast(*void)(*instance)) == 480, "Context.layoutElementIdStrings has unexpected offset % instead of 480", ((cast(*void)(*instance.layoutElementIdStrings)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementIdStrings)) == 16, "Context.layoutElementIdStrings has unexpected size % instead of 16", size_of(type_of(Context.layoutElementIdStrings)));
-        assert(((cast(*void)(*instance.wrappedTextLines)) - cast(*void)(*instance)) == 480, "Context.wrappedTextLines has unexpected offset % instead of 480", ((cast(*void)(*instance.wrappedTextLines)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.wrappedTextLines)) - cast(*void)(*instance)) == 496, "Context.wrappedTextLines has unexpected offset % instead of 496", ((cast(*void)(*instance.wrappedTextLines)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.wrappedTextLines)) == 16, "Context.wrappedTextLines has unexpected size % instead of 16", size_of(type_of(Context.wrappedTextLines)));
-        assert(((cast(*void)(*instance.layoutElementTreeNodeArray1)) - cast(*void)(*instance)) == 496, "Context.layoutElementTreeNodeArray1 has unexpected offset % instead of 496", ((cast(*void)(*instance.layoutElementTreeNodeArray1)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementTreeNodeArray1)) - cast(*void)(*instance)) == 512, "Context.layoutElementTreeNodeArray1 has unexpected offset % instead of 512", ((cast(*void)(*instance.layoutElementTreeNodeArray1)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementTreeNodeArray1)) == 16, "Context.layoutElementTreeNodeArray1 has unexpected size % instead of 16", size_of(type_of(Context.layoutElementTreeNodeArray1)));
-        assert(((cast(*void)(*instance.layoutElementTreeRoots)) - cast(*void)(*instance)) == 512, "Context.layoutElementTreeRoots has unexpected offset % instead of 512", ((cast(*void)(*instance.layoutElementTreeRoots)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementTreeRoots)) - cast(*void)(*instance)) == 528, "Context.layoutElementTreeRoots has unexpected offset % instead of 528", ((cast(*void)(*instance.layoutElementTreeRoots)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementTreeRoots)) == 16, "Context.layoutElementTreeRoots has unexpected size % instead of 16", size_of(type_of(Context.layoutElementTreeRoots)));
-        assert(((cast(*void)(*instance.layoutElementsHashMapInternal)) - cast(*void)(*instance)) == 528, "Context.layoutElementsHashMapInternal has unexpected offset % instead of 528", ((cast(*void)(*instance.layoutElementsHashMapInternal)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementsHashMapInternal)) - cast(*void)(*instance)) == 544, "Context.layoutElementsHashMapInternal has unexpected offset % instead of 544", ((cast(*void)(*instance.layoutElementsHashMapInternal)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementsHashMapInternal)) == 16, "Context.layoutElementsHashMapInternal has unexpected size % instead of 16", size_of(type_of(Context.layoutElementsHashMapInternal)));
-        assert(((cast(*void)(*instance.layoutElementsHashMap)) - cast(*void)(*instance)) == 544, "Context.layoutElementsHashMap has unexpected offset % instead of 544", ((cast(*void)(*instance.layoutElementsHashMap)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.layoutElementsHashMap)) - cast(*void)(*instance)) == 560, "Context.layoutElementsHashMap has unexpected offset % instead of 560", ((cast(*void)(*instance.layoutElementsHashMap)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.layoutElementsHashMap)) == 16, "Context.layoutElementsHashMap has unexpected size % instead of 16", size_of(type_of(Context.layoutElementsHashMap)));
-        assert(((cast(*void)(*instance.measureTextHashMapInternal)) - cast(*void)(*instance)) == 560, "Context.measureTextHashMapInternal has unexpected offset % instead of 560", ((cast(*void)(*instance.measureTextHashMapInternal)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.measureTextHashMapInternal)) - cast(*void)(*instance)) == 576, "Context.measureTextHashMapInternal has unexpected offset % instead of 576", ((cast(*void)(*instance.measureTextHashMapInternal)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.measureTextHashMapInternal)) == 16, "Context.measureTextHashMapInternal has unexpected size % instead of 16", size_of(type_of(Context.measureTextHashMapInternal)));
-        assert(((cast(*void)(*instance.measureTextHashMapInternalFreeList)) - cast(*void)(*instance)) == 576, "Context.measureTextHashMapInternalFreeList has unexpected offset % instead of 576", ((cast(*void)(*instance.measureTextHashMapInternalFreeList)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.measureTextHashMapInternalFreeList)) - cast(*void)(*instance)) == 592, "Context.measureTextHashMapInternalFreeList has unexpected offset % instead of 592", ((cast(*void)(*instance.measureTextHashMapInternalFreeList)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.measureTextHashMapInternalFreeList)) == 16, "Context.measureTextHashMapInternalFreeList has unexpected size % instead of 16", size_of(type_of(Context.measureTextHashMapInternalFreeList)));
-        assert(((cast(*void)(*instance.measureTextHashMap)) - cast(*void)(*instance)) == 592, "Context.measureTextHashMap has unexpected offset % instead of 592", ((cast(*void)(*instance.measureTextHashMap)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.measureTextHashMap)) - cast(*void)(*instance)) == 608, "Context.measureTextHashMap has unexpected offset % instead of 608", ((cast(*void)(*instance.measureTextHashMap)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.measureTextHashMap)) == 16, "Context.measureTextHashMap has unexpected size % instead of 16", size_of(type_of(Context.measureTextHashMap)));
-        assert(((cast(*void)(*instance.measuredWords)) - cast(*void)(*instance)) == 608, "Context.measuredWords has unexpected offset % instead of 608", ((cast(*void)(*instance.measuredWords)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.measuredWords)) - cast(*void)(*instance)) == 624, "Context.measuredWords has unexpected offset % instead of 624", ((cast(*void)(*instance.measuredWords)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.measuredWords)) == 16, "Context.measuredWords has unexpected size % instead of 16", size_of(type_of(Context.measuredWords)));
-        assert(((cast(*void)(*instance.measuredWordsFreeList)) - cast(*void)(*instance)) == 624, "Context.measuredWordsFreeList has unexpected offset % instead of 624", ((cast(*void)(*instance.measuredWordsFreeList)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.measuredWordsFreeList)) - cast(*void)(*instance)) == 640, "Context.measuredWordsFreeList has unexpected offset % instead of 640", ((cast(*void)(*instance.measuredWordsFreeList)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.measuredWordsFreeList)) == 16, "Context.measuredWordsFreeList has unexpected size % instead of 16", size_of(type_of(Context.measuredWordsFreeList)));
-        assert(((cast(*void)(*instance.openClipElementStack)) - cast(*void)(*instance)) == 640, "Context.openClipElementStack has unexpected offset % instead of 640", ((cast(*void)(*instance.openClipElementStack)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.openClipElementStack)) - cast(*void)(*instance)) == 656, "Context.openClipElementStack has unexpected offset % instead of 656", ((cast(*void)(*instance.openClipElementStack)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.openClipElementStack)) == 16, "Context.openClipElementStack has unexpected size % instead of 16", size_of(type_of(Context.openClipElementStack)));
-        assert(((cast(*void)(*instance.pointerOverIds)) - cast(*void)(*instance)) == 656, "Context.pointerOverIds has unexpected offset % instead of 656", ((cast(*void)(*instance.pointerOverIds)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.pointerOverIds)) - cast(*void)(*instance)) == 672, "Context.pointerOverIds has unexpected offset % instead of 672", ((cast(*void)(*instance.pointerOverIds)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.pointerOverIds)) == 16, "Context.pointerOverIds has unexpected size % instead of 16", size_of(type_of(Context.pointerOverIds)));
-        assert(((cast(*void)(*instance.scrollContainerDatas)) - cast(*void)(*instance)) == 672, "Context.scrollContainerDatas has unexpected offset % instead of 672", ((cast(*void)(*instance.scrollContainerDatas)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.scrollContainerDatas)) - cast(*void)(*instance)) == 688, "Context.scrollContainerDatas has unexpected offset % instead of 688", ((cast(*void)(*instance.scrollContainerDatas)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.scrollContainerDatas)) == 16, "Context.scrollContainerDatas has unexpected size % instead of 16", size_of(type_of(Context.scrollContainerDatas)));
-        assert(((cast(*void)(*instance.treeNodeVisited)) - cast(*void)(*instance)) == 688, "Context.treeNodeVisited has unexpected offset % instead of 688", ((cast(*void)(*instance.treeNodeVisited)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.treeNodeVisited)) - cast(*void)(*instance)) == 704, "Context.treeNodeVisited has unexpected offset % instead of 704", ((cast(*void)(*instance.treeNodeVisited)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.treeNodeVisited)) == 16, "Context.treeNodeVisited has unexpected size % instead of 16", size_of(type_of(Context.treeNodeVisited)));
-        assert(((cast(*void)(*instance.dynamicStringData)) - cast(*void)(*instance)) == 704, "Context.dynamicStringData has unexpected offset % instead of 704", ((cast(*void)(*instance.dynamicStringData)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.dynamicStringData)) - cast(*void)(*instance)) == 720, "Context.dynamicStringData has unexpected offset % instead of 720", ((cast(*void)(*instance.dynamicStringData)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.dynamicStringData)) == 16, "Context.dynamicStringData has unexpected size % instead of 16", size_of(type_of(Context.dynamicStringData)));
-        assert(((cast(*void)(*instance.debugElementData)) - cast(*void)(*instance)) == 720, "Context.debugElementData has unexpected offset % instead of 720", ((cast(*void)(*instance.debugElementData)) - cast(*void)(*instance)));
+        assert(((cast(*void)(*instance.debugElementData)) - cast(*void)(*instance)) == 736, "Context.debugElementData has unexpected offset % instead of 736", ((cast(*void)(*instance.debugElementData)) - cast(*void)(*instance)));
         assert(size_of(type_of(Context.debugElementData)) == 16, "Context.debugElementData has unexpected size % instead of 16", size_of(type_of(Context.debugElementData)));
-        assert(size_of(Context) == 736, "Context has size % instead of 736", size_of(Context));
+        assert(size_of(Context) == 752, "Context has size % instead of 752", size_of(Context));
     }
 
     {

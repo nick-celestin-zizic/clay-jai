@@ -41,7 +41,7 @@ create_layout :: () {
             sizing = .{ SizingGrow(), SizingFixed(xx hu(4)) },
             childAlignment = .{ y = .CENTER },
             childGap = xx wu(1.1),
-            padding = .{ xx wu(2.2), 0 }
+            padding = .{ xx wu(2.2), xx wu(2.2), 0, 0 }
         }),
         children = #code {
         
@@ -55,7 +55,7 @@ create_layout :: () {
 
         { Element(ID("Spacer"), Layout(.{ sizing = .{ width = SizingGrow() } }) ); }
         
-        layout := Layout(.{ padding = .{ cast(u16) wu(.8), 0 } });
+        layout := Layout(.{ padding = .{ xx wu(.8), xx wu(.8), 0, 0 } });
         if !mobile_screen {
             link_button(ID("LinkDocsOuter"), "Docs", "https://github.com/nicbarker/clay/blob/main/README.md", header_text_config, layout);
             link_button(ID("LinkExamplesOuter"), "Examples", "https://github.com/nicbarker/clay/tree/main/examples", header_text_config, layout);
@@ -125,7 +125,7 @@ create_layout :: () {
     );
 }
 
-link_button :: (id: ElementId, text: string, link: string, config: *TextElementConfig, layout: LayoutConfig, configs: ..ElementConfig) {
+link_button :: (id: ElementId, text: string, link_value: string, config: *TextElementConfig, layout: LayoutConfig, configs: ..ElementConfig) {
     rectangle := Rectangle(.{
         cornerRadius = CornerRadiusAll(10),
         color = ifx PointerOver(id) then COLOR_LIGHT_HOVER else COLOR_LIGHT
@@ -140,11 +140,14 @@ link_button :: (id: ElementId, text: string, link: string, config: *TextElementC
     Basic.set_temporary_storage_mark(mark);
     
     #if OS == .WASM then rectangle.config.rectangleElementConfig.link = link; else {
-        user_data := Basic.New(string, false,, Basic.temp);
-        user_data.* = link;
-        OnHover(xx (id: ElementId, pointer_info: PointerData, link: *string) #c_call {
+        // user_data := capture(#code.{ ctx = *context, link = link_value },, Basic.temp);
+        user_data := Basic.New(struct { ctx: *#Context; link: string; },, Basic.temp);
+        user_data.* = .{*context, link_value};
+        OnHover(xx (id: ElementId, pointer_info: PointerData, using capture: type_of(user_data)) #c_call {
+            push_context,defer_pop ctx;
+            push_context,defer_pop Remap_Context.remap_context();
             if pointer_info.state == .PRESSED_THIS_FRAME {
-                push_context { Basic.log("TODO: Open Link %", link.*); }
+                Basic.log("TODO: Open Link %", link);
             }
         }, xx user_data);
     }
@@ -166,6 +169,60 @@ using Clay    :: #import,file "../../../module.jai";
 
 using shared_state: *State;
 
+my_print_style :: inline (max_pointer_depth : u32 = 0) -> Basic.Print_Style {
+    style := Basic.Print_Style.{
+        struct_printer = my_struct_printer,
+        // struct_printer_data = New(My_Struct_Printer_Data),
+        default_format_struct = .{
+            use_long_form_if_more_than_this_many_members = -1,
+            draw_type_name                               = true,
+            use_newlines_if_long_form                    = true,
+        }, 
+    };
+    // (cast(*My_Struct_Printer_Data) style.struct_printer_data).max_pointer_chases = max_pointer_chases;
+    return style;
+}
+
+my_struct_printer :: (sb: *Basic.String_Builder, v: Any, data: *void) -> bool {
+    using Basic;
+    // here we "dereference" any pointer types so that we can print the
+    // contents at that address if it is non-null (you can still cast to *void to
+    // print the address)
+    if !v.value_pointer return false;
+    // using cast(*My_Struct_Printer_Data) data;
+    
+    item: Any;
+    info: *Type_Info_Struct;
+    if v.type.type == {
+    case .POINTER; {
+    //     if cur_pointer_chases >= max_pointer_chases return false;
+        item.value_pointer = (cast(**void)v.value_pointer).*;
+        if !item.value_pointer return false;
+        item.type = (cast(*Type_Info_Pointer)v.type).pointer_to;
+        if item.type.type != .STRUCT return false;
+        info = cast(*Type_Info_Struct) item.type;
+        if context.print_style.default_format_struct.draw_type_name append(sb, "*");
+    //     cur_pointer_chases += 1;
+    }
+    case .STRUCT; {
+        if !v.value_pointer return false;
+        info = cast(*Type_Info_Struct) v.type;
+        item = v;
+    }
+    case; return false; //assert(false, "%", v.type.type); return false;
+    }
+    
+    // defer if v.type.type == .POINTER then cur_pointer_chases -= 1;
+    
+    if info.name == {
+    case; if v.type.type != .POINTER then return false; else {
+        print_item_to_builder(sb, item);
+        return true;
+    }
+    }
+    return false;
+}
+
 #program_export "update"
 update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
     push_context,defer_pop Remap_Context.remap_context();
@@ -182,8 +239,10 @@ update : Layout_Update_Procedure : (state: *State) -> Clay.RenderCommandArray {
     }
     Basic.assert(xx clay_context);
     
+    context.print_style = my_print_style();
+    
     SetCurrentContext(clay_context);
-    SetMeasureTextFunction(measure_text);
+    SetMeasureTextFunction(measure_text, xx *context);
     SetDebugModeEnabled(show_debugger);
     SetPointerState(cast,force(Clay.Vector2) mouse_position, left_mouse_down && !scrollbar_data.mouse_down);
     SetLayoutDimensions(.{ window_width, window_height });

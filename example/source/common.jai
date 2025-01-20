@@ -34,7 +34,7 @@ State :: struct {
         FONT_MONO  :: "../resources/RobotoMono-Medium.ttf";
     }
     
-    measure_text: (text: *Clay.String, config: *Clay.TextElementConfig) -> Clay.Dimensions #c_call;
+    measure_text: (text: Clay.StringSlice, config: *Clay.TextElementConfig, user_data: u64) -> Clay.Dimensions #c_call;
     handle_error: Clay.ErrorHandler;
 }
 

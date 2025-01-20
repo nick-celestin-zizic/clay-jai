@@ -5,7 +5,7 @@ landing_page_desktop :: () {
         Layout(.{
             sizing = .{ width = SizingGrow(), height = SizingFit(.{ min = window_height - hu(4) }) },
             childAlignment = .{y = .CENTER},
-            padding = .{ x = xx wu(3) } }
+            padding = .{ left = xx wu(1.5), right = xx wu(1.5) } }
         )
     );
     
@@ -14,7 +14,7 @@ landing_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingGrow() },
             childAlignment = .{ y = .CENTER },
-            padding = .{ pad, pad },
+            padding = .{ pad, pad, pad, pad },
             childGap = pad
         }),
         Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } }),
@@ -59,7 +59,7 @@ landing_page_desktop :: () {
             Element(ID("HeroBlob", index),
                 Layout(.{
                     sizing         = .{width = SizingGrow(.{ max = xx wu(34) })},
-                    padding        = .{pad, xx hu(1.5)},
+                    padding        = .{pad, pad, xx hu(1.5), xx hu(1.5)},
                     childGap       = xx hu(1.5),
                     childAlignment = .{y = .CENTER}
                 }),
@@ -99,7 +99,7 @@ feature_blocks_desktop :: () {
         Border(.{ betweenChildren = .{ width = xx mu(.2), color = COLOR_RED } })
     );
     
-    pad := Padding.{xx wu(2.2), xx hu(2.2)};
+    pad := Padding.{xx wu(2.2), xx wu(2.2), xx hu(2.2), xx hu(2.2)};
     text_config := StoreTextElementConfig(.{ fontSize = xx hu(2.5), fontId = FONT_BODY, textColor = COLOR_RED });
     layout_config := LayoutConfig.{
         layoutDirection = .TOP_TO_BOTTOM,
@@ -111,10 +111,17 @@ feature_blocks_desktop :: () {
     
     Element(ID("HFileBoxOuter"), Layout(layout_config), children = #code {
         Element(ID("HFileIncludeOuter"),
-            Layout(.{ padding = .{xx mu(0.6), xx mu(1.4)}, layoutDirection = .TOP_TO_BOTTOM, }),
+            Layout(.{
+                padding = .{xx mu(0.6), xx mu(0.6), xx mu(1.4), xx mu(1.4)},
+                layoutDirection = .TOP_TO_BOTTOM,
+            }),
             Rectangle(.{ color = COLOR_RED, cornerRadius = CornerRadiusAll(8)}),
             children = #code {
-            config := StoreTextElementConfig(.{ fontId = FONT_BODY, fontSize = text_config.fontSize, textColor = COLOR_LIGHT });
+            config := StoreTextElementConfig(.{
+                fontId    = FONT_BODY,
+                fontSize  = text_config.fontSize,
+                textColor = COLOR_LIGHT
+            });
             Text("#define CLAY_IMPLEMENTATION", config);
             Text("#include clay.h", config);
         });
@@ -137,7 +144,7 @@ declarative_syntax_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = window_height -  page_pad}) },
             childAlignment = .{0, .CENTER},
-            padding = .{x = page_pad}
+            padding = .{left = page_pad, right = page_pad}
         })
     );
     
@@ -146,7 +153,7 @@ declarative_syntax_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingGrow() },
             childAlignment = .{ 0, .CENTER },
-            padding = .{ syntax_pad, syntax_pad },
+            padding = .{ syntax_pad, syntax_pad, syntax_pad, syntax_pad },
             childGap = syntax_pad
         }),
         Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
@@ -187,7 +194,7 @@ high_performance_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = xx (window_height - 50) }) },
             childAlignment = .{0, .CENTER},
-            padding = .{82, 32},
+            padding = .{82, 82, 32, 32},
             childGap = 64
         }),
         Rectangle(.{ color = COLOR_RED })
@@ -227,7 +234,7 @@ high_performance_page_desktop :: () {
         );
         
         lerp_value := Math.sin(animation_counter*2.5)*0.5 + 0.5;
-        pad        := Padding.{xx mu(2.2), xx mu(2.2)};
+        pad        := Padding.{xx mu(2.2), xx mu(2.2), xx mu(2.2), xx mu(2.2)};
         align      :: ChildAlignment.{y = .CENTER};
         config     := StoreTextElementConfig(.{
             fontSize  = xx hu(1.6),
@@ -266,7 +273,7 @@ renderer_page_desktop :: () {
     Element(ID("RendererPageDesktop"),
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = window_height - 50 }) },
-            childAlignment = .{0, .CENTER}, padding = .{x = 50}
+            childAlignment = .{0, .CENTER}, padding = .{left = 50, right = 50 }
         })
     );
     
@@ -274,7 +281,7 @@ renderer_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingGrow() },
             childAlignment = .{ 0, .CENTER },
-            padding = .{ 32, 32 },
+            padding = .{ 32, 32, 32, 32 },
             childGap = 32
         }),
         Border(.{ left = .{ 2, COLOR_RED }, right = .{ 2, COLOR_RED } })
@@ -320,7 +327,7 @@ renderer_page_desktop :: () {
         renderer_button_active :: (text: string) #expand {
             id := ID("RendererButtonActive");
             Element(id,
-                Layout(.{ sizing = .{ width = SizingPercent(.50) }, padding = .{16, 16} }),
+                Layout(.{ sizing = .{ width = SizingPercent(.50) }, padding = .{16, 16, 16, 16} }),
                 Rectangle(.{
                     color = ifx PointerOver(id) then COLOR_RED_HOVER else COLOR_RED,
                     cornerRadius = CornerRadiusAll(10)
@@ -337,7 +344,7 @@ renderer_page_desktop :: () {
         renderer_button_inactive :: (text: string, renderer_index: int) {
             id := ID("RendererButtonInactive");
             Element(id,
-                Layout(.{ sizing = .{ width = SizingPercent(.50)}, padding = .{16, 16} }),
+                Layout(.{ sizing = .{ width = SizingPercent(.50)}, padding = .{16, 16, 16, 16} }),  
                 BorderOutsideRadius(2, COLOR_RED, 10),
                 Rectangle(.{
                     color = ifx PointerOver(id) then COLOR_LIGHT_HOVER else COLOR_LIGHT,
@@ -376,7 +383,7 @@ debugger_page_desktop :: () {
         Layout(.{
             sizing = .{ SizingGrow(), SizingFit(.{ min = window_height - 50 }) },
             childAlignment = .{0, .CENTER},
-            padding = .{ 82, 32},
+            padding = .{ 82, 82, 32, 32 },
             childGap = 64
         }),
         Rectangle(.{ color = COLOR_RED })
